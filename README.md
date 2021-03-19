@@ -61,12 +61,12 @@ while (  cond )
 block
 
 
-relational operators:  over equal under  
+relational operators:  greater equal less  
 
 10) sample of the loop
 
 set x to one five
-while ( x over zero )
+while ( x greater zero )
   printI x
   subtract five from x into x
 block
