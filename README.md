@@ -13,10 +13,11 @@ Idea:
 2) Types are integer & fraction
 3) Declare variable with initial value
 
+```
 define integer w as negative nine
 define integer r as one seven  
 define fraction  f as  two three over five 
-define integer k
+define integer k```
 
 
 4)  Var must have value before reading from
@@ -26,11 +27,12 @@ define integer k
 
 put two into k
 
+```
 add three and eight into x
 subtract four from nine into y
 add two four and x into x
 multiply one one by three into y
-max of x and y and one two into m
+max of x and y and one two into m```
 
 add negative five and nine into w
 
@@ -47,29 +49,32 @@ fadd, fsubtract, fmultiply
 
 
 8) simple output
+```
 printI r
 printF f
 printS "hello world"
-printNL
+printNL```
 
 Do we want to allow multiple integers at once with ands?
 
 9) control flow
+```
 if
 while (  cond ) 
   stmts
-block
+block```
 
 
 relational operators:  greater equal less  
 
 10) sample of the loop
 
+```
 set x to one five
 while ( x greater zero )
   printI x
   subtract five from x into x
-block
+block```
 
 
 11) Wrap a complete program
@@ -78,13 +83,13 @@ block
 
 12) this should be legal?
 
-
+```
 begin
 define integer w as three two
 define integer great 
 multiply w by one six into great 
 printI great 
 printNL 
-end
+end```
 
 
