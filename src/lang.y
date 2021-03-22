@@ -1,32 +1,62 @@
 %start Expr
+%avoid_insert "INT"
+
 %%
-Expr -> Result<u64, ()>:
-      Expr 'PLUS' Term { Ok($1? + $3?) }
+
+Expr -> Result<Token, ()>
+    :  Expr '+' Term { Ok(Token::Add{span: $span, lhs: Box::new($1?), rhs: Box::new($3?)}) }
+    |  Expr '-' Term { Ok(Token::Sub{span: $span, lhs: Box::new($1?), rhs: Box::new($3?)}) }
     | Term { $1 }
     ;
 
-Term -> Result<u64, ()>:
-      Term 'MUL' Factor { Ok($1? * $3?) }
+Term -> Result<Token, ()>
+    :  Term '*' Factor { Ok(Token::Mul{span: $span, lhs: Box::new($1?), rhs: Box::new($3?)}) }
+    |  Term '/' Factor { Ok(Token::Div{span: $span, lhs: Box::new($1?), rhs: Box::new($3?)}) }
     | Factor { $1 }
     ;
 
-Factor -> Result<u64, ()>:
-      'LBRACK' Expr 'RBRACK' { $2 }
-    | 'INT'
-      {
-          let v = $1.map_err(|_| ())?;
-          parse_int($lexer.span_str(v.span()))
+Factor -> Result<Token, ()>
+    :  '(' Expr ')' { $2 }
+    | 'INT' {
+        let v = $1.map_err(|_| ())?;
+        Ok(Token::Int{val: $lexer.span_str(v.span()).parse::<i32>().unwrap(), span: $span})
+      }
+    | 'FLOAT' {
+        let v = $1.map_err(|_| ())?;
+        Ok(Token::Float{val: $lexer.span_str(v.span()).parse::<f32>().unwrap(), span: $span})
       }
     ;
-%%
-// Any functions here are in scope for all the grammar actions above.
 
-fn parse_int(s: &str) -> Result<u64, ()> {
-    match s.parse::<u64>() {
-        Ok(val) => Ok(val),
-        Err(_) => {
-            eprintln!("{} cannot be represented as a u64", s);
-            Err(())
-        }
-    }
+Unmatched -> ()
+    :  "UNMATCHED" { }
+    ;
+
+%%
+
+use lrpar::Span;
+
+#[derive(Debug)]
+pub enum Token {
+  Int{ val: i32, span: Span },
+  Float{ val: f32, span: Span },
+  Add {
+    span: Span,
+    lhs: Box<Token>,
+    rhs: Box<Token>,
+  },
+  Sub {
+    span: Span,
+    lhs: Box<Token>,
+    rhs: Box<Token>,
+  },
+  Mul {
+    span: Span,
+    lhs: Box<Token>,
+    rhs: Box<Token>,
+  },
+  Div {
+    span: Span,
+    lhs: Box<Token>,
+    rhs: Box<Token>,
+  },
 }

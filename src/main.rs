@@ -1,5 +1,9 @@
 use std::io::{self, BufRead, Write};
 
+mod executer;
+
+use executer::execute;
+
 use lrlex::lrlex_mod;
 use lrpar::lrpar_mod;
 
@@ -33,11 +37,17 @@ fn main() {
                     println!("{}", e.pp(&lexer, &lang_y::token_epp));
                 }
                 match res {
-                    Some(r) => println!("Result: {:?}", r),
-                    _ => eprintln!("Unable to evaluate expression.")
+                    Some(r) => {
+                        // println!("Result: {:?}", r);
+                        match r {
+                            Ok(tree) => execute(&tree).unwrap(),
+                            Err(e) => eprintln!("Parsing Error: {:?}", e),
+                        }
+                    }
+                    _ => eprintln!("Unable to evaluate expression."),
                 }
             }
-            _ => break
+            _ => break,
         }
     }
 }
