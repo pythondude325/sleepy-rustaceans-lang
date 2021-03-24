@@ -41,7 +41,10 @@ fn main() {
                     Some(r) => {
                         // println!("Result: {:?}", r);
                         match r {
-                            Ok(tree) => execute(&tree).unwrap(),
+                            Ok(tree) => {
+                                //execute(&tree).unwrap()
+                                dbg!(tree);   
+                            },
                             Err(e) => eprintln!("Parsing Error: {:?}", e),
                         }
                     }
