@@ -1,8 +1,5 @@
 use std::io::{self, BufRead, Write};
 
-mod executer;
-
-use executer::execute;
 
 use lrlex::lrlex_mod;
 use lrpar::lrpar_mod;
@@ -15,6 +12,10 @@ lrlex_mod!("lang.l");
 // module name will be `calc_y` (i.e. the file name, minus any extensions,
 // with a suffix of `_y`).
 lrpar_mod!("lang.y");
+
+mod executer;
+
+use executer::execute;
 
 fn main() {
     // Get the `LexerDef` for the `calc` language.
