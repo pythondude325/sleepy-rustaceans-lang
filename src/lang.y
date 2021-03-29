@@ -61,11 +61,11 @@ Fraction -> Result<Locatable<Token>, ()>
 Number -> Result<Locatable<Token>, ()>
     : 'NEGATIVE' DigitList {
         let digit_list = $2?;
-        Ok($span.with(Token::Int{ val: -digits_to_int(&digit_list)}))
+        Ok($span.with(Token::Int{ val: -digits_to_int(&digit_list).ok_or(())?}))
     }
     | DigitList {
         let digit_list = $1?;
-        Ok($span.with(Token::Int{ val: digits_to_int(&digit_list)}))
+        Ok($span.with(Token::Int{ val: digits_to_int(&digit_list).ok_or(())?}))
     }
     ;
 
@@ -165,10 +165,10 @@ pub enum Stmt {
     PrintNewline,
 }
 
-fn digits_to_int(digits: &[u8]) -> i32 {
+fn digits_to_int(digits: &[u8]) -> Option<i32> {
     let mut integer_value: i32 = 0;
     for digit in digits {
-        integer_value = integer_value * 10 + (*digit as i32);
+        integer_value = integer_value.checked_mul(10)?.checked_add(*digit as i32)?;
     }
-    integer_value
+    Some(integer_value)
 }
