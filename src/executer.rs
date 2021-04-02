@@ -1,5 +1,5 @@
-use crate::lang_y::Token;
+use crate::lang_y::Expression;
 
-pub fn execute(token: &Token) -> Result<(), ()> {
+pub fn execute(token: &Expression) -> Result<(), ()> {
     Ok(())
 }

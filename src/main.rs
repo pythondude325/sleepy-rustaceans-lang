@@ -14,8 +14,9 @@ lrlex_mod!("lang.l");
 lrpar_mod!("lang.y");
 
 mod executer;
-
 use executer::execute;
+
+mod analyzer;
 
 fn main() {
     // Get the `LexerDef` for the `calc` language.
