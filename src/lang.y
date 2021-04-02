@@ -2,7 +2,7 @@
 
 %%
 
-Statement -> Result<Locatable<Stmt>, ()>
+Statement -> Result<LocStmt, ()>
     : 'DEFINE' Type Identifier 'AS' Operand {
         Ok($span.with(Stmt::Definition {
             variable_type: $2?,
@@ -32,7 +32,7 @@ Identifier -> Result<String, ()>
         Ok($lexer.span_str($1.map_err(|_| ())?.span()).to_owned())
     };
 
-Expr -> Result<Locatable<Expression>, ()>
+Expr -> Result<LocExpression, ()>
     : 'ADD' Operand 'AND' Operand { Ok($span.with(Expression::Add{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
     | 'SUBTRACT' Operand 'FROM' Operand { Ok($span.with(Expression::Sub{ lhs: Box::new($4?), rhs: Box::new($2?) })) }
     | 'MULTIPLY' Operand 'BY' Operand { Ok($span.with(Expression::Mul{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
@@ -41,13 +41,13 @@ Expr -> Result<Locatable<Expression>, ()>
     | 'FMULTIPLY' Operand 'BY' Operand { Ok($span.with(Expression::FMul{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
     ;
 
-Operand -> Result<Locatable<Expression>, ()>
+Operand -> Result<LocExpression, ()>
     :  '[' Expr ']' { $2 }
     | Number { $1 }
     | Fraction { $1 }
     ;
 
-Fraction -> Result<Locatable<Expression>, ()>
+Fraction -> Result<LocExpression, ()>
     : Number 'OVER' Number {
         match ($1, $3) {
             (Ok(Locatable { data: Expression::Int { val: num }, .. }),
@@ -58,7 +58,7 @@ Fraction -> Result<Locatable<Expression>, ()>
         }
     };
 
-Number -> Result<Locatable<Expression>, ()>
+Number -> Result<LocExpression, ()>
     : 'NEGATIVE' DigitList {
         let digit_list = $2?;
         Ok($span.with(Expression::Int{ val: -digits_to_int(&digit_list).ok_or(())?}))
@@ -124,30 +124,32 @@ pub enum Expression {
     Int{ val: i32 },
     Fraction { num: i32, den: i32 },
     Add {
-        lhs: Box<Locatable<Expression>>,
-        rhs: Box<Locatable<Expression>>,
+        lhs: Box<LocExpression>,
+        rhs: Box<LocExpression>,
     },
     Sub {
-        lhs: Box<Locatable<Expression>>,
-        rhs: Box<Locatable<Expression>>,
+        lhs: Box<LocExpression>,
+        rhs: Box<LocExpression>,
     },
     Mul {
-        lhs: Box<Locatable<Expression>>,
-        rhs: Box<Locatable<Expression>>,
+        lhs: Box<LocExpression>,
+        rhs: Box<LocExpression>,
     },
     FAdd {
-        lhs: Box<Locatable<Expression>>,
-        rhs: Box<Locatable<Expression>>,
+        lhs: Box<LocExpression>,
+        rhs: Box<LocExpression>,
     },
     FSub {
-        lhs: Box<Locatable<Expression>>,
-        rhs: Box<Locatable<Expression>>,
+        lhs: Box<LocExpression>,
+        rhs: Box<LocExpression>,
     },
     FMul {
-        lhs: Box<Locatable<Expression>>,
-        rhs: Box<Locatable<Expression>>,
+        lhs: Box<LocExpression>,
+        rhs: Box<LocExpression>,
     },
 }
+
+type LocExpression = Locatable<Expression>;
 
 #[derive(Debug)]
 pub enum Type {
@@ -157,13 +159,15 @@ pub enum Type {
 
 #[derive(Debug)]
 pub enum Stmt {
-    Definition { variable_type: Type, identifier: String, value: Locatable<Expression> },
-    Assignment { identifier: String, value: Locatable<Expression> },
-    PrintInteger { value: Locatable<Expression> },
-    PrintFraction { value: Locatable<Expression> },
-    PrintString { value: Locatable<Expression> },
+    Definition { variable_type: Type, identifier: String, value: LocExpression },
+    Assignment { identifier: String, value: LocExpression },
+    PrintInteger { value: LocExpression },
+    PrintFraction { value: LocExpression },
+    PrintString { value: LocExpression },
     PrintNewline,
 }
+
+type LocStmt = Locatable<Stmt>;
 
 fn digits_to_int(digits: &[u8]) -> Option<i32> {
     let mut integer_value: i32 = 0;
