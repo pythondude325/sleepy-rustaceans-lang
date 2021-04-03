@@ -79,6 +79,20 @@ pub enum Stmt {
     PrintFraction { value: LocExpression },
     PrintString { value: LocExpression },
     PrintNewline,
+    If {condition: Box<Locatable<Cond>>, block: Box<Locatable<StmtList>>},
+    While {condition: Box<Locatable<Cond>>, block: Box<Locatable<StmtList>>},
 }
 
 pub type LocStmt = Locatable<Stmt>;
+
+#[derive(Debug)]
+pub struct StmtList {
+  stmts: Vec<Locatable<Stmt>>
+}
+
+#[derive(Debug)]
+pub enum Cond {
+  Greater {lhs: Box<LocExpression>, rhs: Box<LocExpression>},
+  Equal {lhs: Box<LocExpression>, rhs: Box<LocExpression>},
+  Less {lhs: Box<LocExpression>, rhs: Box<LocExpression>}
+}

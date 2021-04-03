@@ -20,7 +20,27 @@ Statement -> Result<LocStmt, ()>
     | 'PRINTF' Operand { Ok($span.with(Stmt::PrintFraction { value: $2? })) }
     | 'PRINTS' Operand { Ok($span.with(Stmt::PrintString { value: $2? })) }
     | 'PRINTNL' { Ok($span.with(Stmt::PrintNewline)) }
+    | If  { todo!() }
+    | While { todo!() }
     ;
+
+StatementList -> Result<Locatable<StmtList>, ()>
+  : StatementList Statement  { todo!() }
+  | Statement                     { todo!() }
+  ;
+
+Conditional -> Result<Locatable<Cond>, ()>
+    : Expr 'GREATER' Expr { todo!() }
+    | Expr 'EQUAL' Expr   { todo!() }
+    | Expr 'LESS' Expr    { todo!() }
+    ;
+
+If -> Result<Locatable<Stmt>, ()>
+    : 'IF' '(' Conditional ')' StatementList 'BLOCK'  { todo!() }
+    ;
+
+While -> Result<Locatable<Stmt>, ()>
+    : 'WHILE' '(' Conditional ')' StatementList 'BLOCK' { todo!() };
 
 Type -> Result<Type, ()>
     : 'INTEGER' { Ok(Type::Integer) }
@@ -102,7 +122,7 @@ Unmatched -> (): "UNMATCHED" { };
 
 %%
 
-use crate::types::{Locatable, Type, LocatableExt, LocStmt, Stmt, LocExpression, Expression};
+use crate::types::*;
 
 fn digits_to_int(digits: &[u8]) -> Option<i32> {
     let mut integer_value: i32 = 0;
