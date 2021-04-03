@@ -45,6 +45,7 @@ Operand -> Result<LocExpression, ()>
     :  '[' Expr ']' { $2 }
     | Number { $1 }
     | Fraction { $1 }
+    | Identifier { Ok($span.with(Expression::Variable { ident: $1? })) }
     ;
 
 Fraction -> Result<LocExpression, ()>
@@ -71,7 +72,7 @@ Number -> Result<LocExpression, ()>
 
 DigitList -> Result<Vec<u8>, ()>
     : DigitList Digit {
-        let mut new_digits = $1?.clone();
+        let mut new_digits = $1?;
         new_digits.push($2?);
         Ok(new_digits)
     }
@@ -101,73 +102,7 @@ Unmatched -> (): "UNMATCHED" { };
 
 %%
 
-use lrpar::Span;
-
-#[derive(Debug)]
-pub struct Locatable<T>{
-    pub data: T,
-    pub location: Span,
-}
-
-trait LocatableExt {
-    fn with<T>(self, data: T) -> Locatable<T>;
-}
-
-impl LocatableExt for Span {
-    fn with<T>(self, data: T) -> Locatable<T> {
-        Locatable { data, location: self }
-    }
-}
-
-#[derive(Debug)]
-pub enum Expression {
-    Int{ val: i32 },
-    Fraction { num: i32, den: i32 },
-    Add {
-        lhs: Box<LocExpression>,
-        rhs: Box<LocExpression>,
-    },
-    Sub {
-        lhs: Box<LocExpression>,
-        rhs: Box<LocExpression>,
-    },
-    Mul {
-        lhs: Box<LocExpression>,
-        rhs: Box<LocExpression>,
-    },
-    FAdd {
-        lhs: Box<LocExpression>,
-        rhs: Box<LocExpression>,
-    },
-    FSub {
-        lhs: Box<LocExpression>,
-        rhs: Box<LocExpression>,
-    },
-    FMul {
-        lhs: Box<LocExpression>,
-        rhs: Box<LocExpression>,
-    },
-}
-
-type LocExpression = Locatable<Expression>;
-
-#[derive(Debug)]
-pub enum Type {
-    Integer,
-    Fraction
-}
-
-#[derive(Debug)]
-pub enum Stmt {
-    Definition { variable_type: Type, identifier: String, value: LocExpression },
-    Assignment { identifier: String, value: LocExpression },
-    PrintInteger { value: LocExpression },
-    PrintFraction { value: LocExpression },
-    PrintString { value: LocExpression },
-    PrintNewline,
-}
-
-type LocStmt = Locatable<Stmt>;
+use crate::types::{Locatable, Type, LocatableExt, LocStmt, Stmt, LocExpression, Expression};
 
 fn digits_to_int(digits: &[u8]) -> Option<i32> {
     let mut integer_value: i32 = 0;

@@ -1,5 +1,6 @@
 use std::io::{self, BufRead, Write};
 
+mod types;
 
 use lrlex::lrlex_mod;
 use lrpar::lrpar_mod;
@@ -14,7 +15,6 @@ lrlex_mod!("lang.l");
 lrpar_mod!("lang.y");
 
 mod executer;
-use executer::execute;
 
 mod analyzer;
 
@@ -44,7 +44,10 @@ fn main() {
                         match r {
                             Ok(tree) => {
                                 //execute(&tree).unwrap()
-                                dbg!(tree);   
+                                dbg!(&tree);
+                                if let crate::types::Stmt::Assignment { value, .. } = &tree.data {
+                                    let _ = dbg!(analyzer::typecheck_expression(value));
+                                }
                             },
                             Err(e) => eprintln!("Parsing Error: {:?}", e),
                         }
