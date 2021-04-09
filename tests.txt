@@ -1,11 +1,19 @@
+define integer a as zero
+define integer b as zero
+define integer c as zero
+define integer d as zero
+
 add five and three into a
 add nine eight seven two and five eight four into b
-sub three from nine into c
-mul two by one into d
+subtract three from nine into c
+mulultiply two by one into d
 
 printI five
 printF five over three
 printNL
 
+define fraction x as zero over one
 fadd five and eight into x
-fmul five over three and two into y
+
+define fraction y as zero over one
+fmultiply five over three and two into y

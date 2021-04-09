@@ -2,6 +2,7 @@ use thiserror::Error;
 use crate::types::*;
 use lasso::{Rodeo, Spur};
 use std::collections::HashMap;
+use lrpar::Span;
 
 #[derive(Error, Debug)]
 pub enum SemanticError {
@@ -9,6 +10,7 @@ pub enum SemanticError {
     InvalidType {
         expected_type: Type,
         found_type: Type,
+        location: Option<Span>,
     },
     #[error("undeclared variable `{name}`")]
     UndeclaredVariable { name: String },
@@ -17,10 +19,11 @@ pub enum SemanticError {
 }
 
 impl SemanticError {
-    fn invalid_type(expected: Type, found: Type) -> SemanticError {
+    fn invalid_type(expected: Type, found: Type, span: Span) -> SemanticError {
         SemanticError::InvalidType {
             expected_type: expected,
             found_type: found,
+            location: Some(span),
         }
     }
 }
@@ -54,12 +57,12 @@ impl Analyzer {
             | Expression::Mul { lhs, rhs } => {
                 let lhs_type = self.typecheck_expression(&lhs)?;
                 if lhs_type != Type::Integer {
-                    return Err(SemanticError::invalid_type(Type::Integer, lhs_type));
+                    return Err(SemanticError::invalid_type(Type::Integer, lhs_type, lhs.location));
                 }
     
                 let rhs_type = self.typecheck_expression(&rhs)?;
                 if rhs_type != Type::Integer {
-                    return Err(SemanticError::invalid_type(Type::Integer, rhs_type));
+                    return Err(SemanticError::invalid_type(Type::Integer, rhs_type, rhs.location));
                 }
     
                 Type::Integer
@@ -84,7 +87,7 @@ impl Analyzer {
                 let value_type = self.typecheck_expression(value)?;
 
                 if var_type != value_type {
-                    Err(SemanticError::invalid_type(var_type, value_type))
+                    Err(SemanticError::invalid_type(var_type, value_type, value.location))
                 } else {
                     Ok(())
                 }
@@ -93,13 +96,15 @@ impl Analyzer {
                 let var_type = *variable_type;
                 let value_type = self.typecheck_expression(value)?;
                 if var_type != value_type {
-                    Err(SemanticError::invalid_type(var_type, value_type))
+                    Err(SemanticError::invalid_type(var_type, value_type, value.location))
                 } else {
                     Ok(())
                 }
             }
             _ => {
-                unimplemented!()
+                // Don't do anything for unimplemented statements
+                // TODO: Implement the rest of the statements
+                Ok(())
             }
         }
     }

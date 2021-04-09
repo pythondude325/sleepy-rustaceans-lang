@@ -34,5 +34,5 @@ less "LESS"
 
 [a-zA-Z]+ "IDENTIFIER"
 
-[\t ]+ ;
+[\n\t ]+ ;
 . "UNMATCHED"
