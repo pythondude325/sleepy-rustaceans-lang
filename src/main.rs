@@ -30,12 +30,15 @@ fn main() -> anyhow::Result<()> {
     let lexer = lexerdef.lexer(&buffer);
     // Pass the lexer to the parser and lex and parse the input.
     let (res, errs) = lang_y::parse(&lexer);
-    for e in errs {
+    for e in &errs {
         println!("{}", e.pp(&lexer, &lang_y::token_epp));
     }
+    if errs.len() != 0 {
+        return Ok(());
+    }
+    
     match res {
         Some(r) => {
-            // println!("Result: {:?}", r);
             match r {
                 Ok(tree) => {
                     //execute(&tree).unwrap()

@@ -1,0 +1,13 @@
+
+printI five
+printF five over three
+printNL
+
+define fraction x as zero over one
+fadd five and eight into x
+
+define fraction y as zero over one
+fmultiply five over three by two into y
+
+define fraction a as three over one
+fadd one over three and a into a

@@ -10,7 +10,7 @@ pub enum SemanticError {
     InvalidType {
         expected_type: Type,
         found_type: Type,
-        location: Option<Span>,
+        location: Span,
     },
     #[error("undeclared variable `{name}`")]
     UndeclaredVariable { name: String },
@@ -23,7 +23,7 @@ impl SemanticError {
         SemanticError::InvalidType {
             expected_type: expected,
             found_type: found,
-            location: Some(span),
+            location: span,
         }
     }
 }

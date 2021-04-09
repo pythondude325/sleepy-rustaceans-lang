@@ -1,0 +1,11 @@
+define integer a as zero
+define integer b as zero
+define integer c as zero
+define integer d as zero
+define integer e as zero
+
+add five and three into a
+add nine eight seven two and five eight four into b
+subtract three from nine into c
+multiply two by one into d
+multiply [add two and four] by five into e
