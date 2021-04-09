@@ -1,0 +1,11 @@
+g3a.good:
+- most types of simple expressions and one compound expression
+
+g3b.good:
+- fraction expressions and a self-depenent expression
+
+g3a.bad:
+- should error on attempting to put a number directly into a variable
+
+g3b.bad:
+- should error on redefining a variable

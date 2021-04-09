@@ -1,0 +1,5 @@
+begin
+define integer z as one one
+define integer x as two
+add z and x into x
+end

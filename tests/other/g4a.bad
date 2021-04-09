@@ -1,0 +1,9 @@
+begin
+define integer x as two one
+define integer y as three
+subtract y and x into z
+add z and h into x
+PrintI z
+PrintI y
+PrintI x
+end

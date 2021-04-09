@@ -1,0 +1,5 @@
+begin
+define integer x as two
+put add [add five and two] and [add four and three] into x
+end
+

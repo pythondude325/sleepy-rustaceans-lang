@@ -1,0 +1,17 @@
+begin 
+define integer x as seven
+define integer y
+define integer z
+define integer s
+add x and eight into y
+if( y less two one)
+    multiply y and x into z
+block
+add [subtract seven and three] and [multiply six and one five] into y
+while ( y greater 5)
+    subtract five six and one three into s
+    PrintI s
+    add y and one into y 
+block
+PRINTI z
+end

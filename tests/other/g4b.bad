@@ -1,0 +1,8 @@
+begin
+define integer x as five
+define integer y as six
+define integer z
+define integer r
+add [max of x and r] and y into z
+PrintS z
+end

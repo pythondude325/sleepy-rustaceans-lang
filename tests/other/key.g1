@@ -1,0 +1,15 @@
+g1a.good:
+- should parse the nested expressions 
+- legal assignment statement
+
+g1b.good:
+- declares three fraction variables with initial values
+- performs nested math operations on the variables
+
+g1a.bad:
+- declares integer var 'x' twice
+   - should throw error on redefinition
+
+g1b.bad:
+- attempts to write to an undeclared variable 'y'
+- also missing the 'put' keyword before an assignment statement 

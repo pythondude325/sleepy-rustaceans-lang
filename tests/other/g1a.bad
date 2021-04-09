@@ -1,0 +1,4 @@
+begin @@ this is a comment
+define integer x as one
+define integer x as two
+end

@@ -31,6 +31,8 @@ block "BLOCK"
 greater "GREATER"
 equal "EQUAL"
 less "LESS"
+begin "BEGIN"
+end "END"
 
 [a-zA-Z]+ "IDENTIFIER"
 

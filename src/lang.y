@@ -1,6 +1,9 @@
-%start StatementList
+%start Program
 
 %%
+
+Program -> Result<Locatable<StmtList>, ()>
+    : 'BEGIN' StatementList 'END' { $2 };
 
 Statement -> Result<LocStmt, ()>
     : 'DEFINE' Type Identifier 'AS' Operand {

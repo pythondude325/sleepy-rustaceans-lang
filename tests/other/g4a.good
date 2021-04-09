@@ -1,0 +1,17 @@
+begin
+define integer dog
+define integer y
+subtract [add x and three] and [subtract one zero and five] into y
+PrintI y
+define integer q as six one
+subtract four from q into q
+define integer x
+add one five and seven into x
+if (x greater two)
+    multiply x and 2 into x
+block
+PrintI x
+max of y and x into dog
+PrintI dog
+PrintS "test"
+end
