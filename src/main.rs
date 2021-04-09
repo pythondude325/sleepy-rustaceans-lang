@@ -45,9 +45,7 @@ fn main() {
                             Ok(tree) => {
                                 //execute(&tree).unwrap()
                                 dbg!(&tree);
-                                if let crate::types::Stmt::Assignment { value, .. } = &tree.data {
-                                    let _ = dbg!(analyzer::typecheck_expression(value));
-                                }
+                                dbg!(analyzer::Analyzer::typecheck_program(&tree));
                             },
                             Err(e) => eprintln!("Parsing Error: {:?}", e),
                         }

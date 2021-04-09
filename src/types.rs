@@ -51,7 +51,7 @@ pub enum Expression {
 
 pub type LocExpression = Locatable<Expression>;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Type {
     Integer,
     Fraction
@@ -87,7 +87,7 @@ pub type LocStmt = Locatable<Stmt>;
 
 #[derive(Debug)]
 pub struct StmtList {
-  stmts: Vec<Locatable<Stmt>>
+    pub stmts: Vec<Locatable<Stmt>>
 }
 
 #[derive(Debug)]

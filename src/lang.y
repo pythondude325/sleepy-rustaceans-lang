@@ -1,4 +1,4 @@
-%start Statement
+%start StatementList
 
 %%
 
@@ -25,9 +25,13 @@ Statement -> Result<LocStmt, ()>
     ;
 
 StatementList -> Result<Locatable<StmtList>, ()>
-  : StatementList Statement  { todo!() }
-  | Statement                     { todo!() }
-  ;
+    : StatementList Statement { 
+        let mut stmt_list = $1?.data;
+        stmt_list.stmts.push($2?);
+        Ok($span.with(stmt_list))
+    }
+    | Statement { Ok($span.with(StmtList { stmts: vec![$1?] })) }
+    ;
 
 Conditional -> Result<Locatable<Cond>, ()>
     : Expr 'GREATER' Expr { todo!() }
