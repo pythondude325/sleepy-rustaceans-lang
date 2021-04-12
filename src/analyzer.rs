@@ -101,6 +101,22 @@ impl Analyzer {
                     Ok(())
                 }
             }
+            Stmt::PrintInteger { value } => {
+                let value_type = self.typecheck_expression(value)?;
+                if value_type != Type::Integer {
+                    Err(SemanticError::invalid_type(Type::Integer, value_type, value.location))
+                } else {
+                    Ok(())
+                }
+            }
+            Stmt::PrintFraction { value } => {
+                let value_type = self.typecheck_expression(value)?;
+                if value_type != Type::Fraction {
+                    Err(SemanticError::invalid_type(Type::Fraction, value_type, value.location))
+                } else {
+                    Ok(())
+                }
+            }
             _ => {
                 // Don't do anything for unimplemented statements
                 // TODO: Implement the rest of the statements
