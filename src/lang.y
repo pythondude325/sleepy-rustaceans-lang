@@ -60,7 +60,8 @@ Identifier -> Result<String, ()>
     };
 
 Expr -> Result<LocExpression, ()>
-    : 'ADD' Operand 'AND' Operand { Ok($span.with(Expression::Add{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
+    : 'PUT' Operand { $2 }
+    | 'ADD' Operand 'AND' Operand { Ok($span.with(Expression::Add{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
     | 'SUBTRACT' Operand 'FROM' Operand { Ok($span.with(Expression::Sub{ lhs: Box::new($4?), rhs: Box::new($2?) })) }
     | 'MULTIPLY' Operand 'BY' Operand { Ok($span.with(Expression::Mul{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
     | 'FADD' Operand 'AND' Operand { Ok($span.with(Expression::FAdd{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
