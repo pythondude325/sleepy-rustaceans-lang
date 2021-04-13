@@ -36,7 +36,7 @@ fn main() -> anyhow::Result<()> {
     if errs.len() != 0 {
         return Ok(());
     }
-    
+
     match res {
         Some(r) => {
             match r {
@@ -44,7 +44,7 @@ fn main() -> anyhow::Result<()> {
                     //execute(&tree).unwrap()
                     dbg!(&tree);
                     dbg!(analyzer::Analyzer::typecheck_program(&tree))?;
-                },
+                }
                 Err(e) => eprintln!("Parsing Error: {:?}", e),
             }
         }

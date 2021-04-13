@@ -1,8 +1,8 @@
-use thiserror::Error;
 use crate::types::*;
 use lasso::{Rodeo, Spur};
-use std::collections::HashMap;
 use lrpar::Span;
+use std::collections::HashMap;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum SemanticError {
@@ -42,29 +42,44 @@ impl Analyzer {
     }
 
     fn lookup_variable(&self, ident: &str) -> Result<Type, SemanticError> {
-        let ident_key = self.var_interner
-            .get(ident)
-            .ok_or_else(|| SemanticError::UndeclaredVariable { name: ident.to_owned() })?;
-        Ok(self.var_types.get(&ident_key).expect("variable must exist").clone())
+        let ident_key =
+            self.var_interner
+                .get(ident)
+                .ok_or_else(|| SemanticError::UndeclaredVariable {
+                    name: ident.to_owned(),
+                })?;
+        Ok(self
+            .var_types
+            .get(&ident_key)
+            .expect("variable must exist")
+            .clone())
     }
 
     pub fn typecheck_expression(&self, expression: &LocExpression) -> Result<Type, SemanticError> {
         Ok(match &expression.data {
             Expression::Int { .. } => Type::Integer,
             Expression::Fraction { .. } => Type::Fraction,
-            Expression::Add { lhs, rhs}
-            | Expression::Sub { lhs, rhs}
+            Expression::Add { lhs, rhs }
+            | Expression::Sub { lhs, rhs }
             | Expression::Mul { lhs, rhs } => {
                 let lhs_type = self.typecheck_expression(&lhs)?;
                 if lhs_type != Type::Integer {
-                    return Err(SemanticError::invalid_type(Type::Integer, lhs_type, lhs.location));
+                    return Err(SemanticError::invalid_type(
+                        Type::Integer,
+                        lhs_type,
+                        lhs.location,
+                    ));
                 }
-    
+
                 let rhs_type = self.typecheck_expression(&rhs)?;
                 if rhs_type != Type::Integer {
-                    return Err(SemanticError::invalid_type(Type::Integer, rhs_type, rhs.location));
+                    return Err(SemanticError::invalid_type(
+                        Type::Integer,
+                        rhs_type,
+                        rhs.location,
+                    ));
                 }
-    
+
                 Type::Integer
             }
             Expression::FAdd { lhs, rhs }
@@ -73,23 +88,25 @@ impl Analyzer {
                 // These are allowed to be whatever because they will be casted to a fraction.
                 let _lhs_type = self.typecheck_expression(&lhs)?;
                 let _rhs_type = self.typecheck_expression(&rhs)?;
-    
+
                 Type::Fraction
             }
-            Expression::Variable { ident } => { self.lookup_variable(ident)? }
+            Expression::Variable { ident } => self.lookup_variable(ident)?,
         })
     }
 
     fn typecheck_condition(&self, cond: &Locatable<Cond>) -> Result<(), SemanticError> {
         match &cond.data {
-            Cond::Greater { lhs, rhs}
-            | Cond::Equal { lhs, rhs}
-            | Cond::Less { lhs, rhs } => {
+            Cond::Greater { lhs, rhs } | Cond::Equal { lhs, rhs } | Cond::Less { lhs, rhs } => {
                 let lhs_type = self.typecheck_expression(lhs)?;
                 let rhs_type = self.typecheck_expression(rhs)?;
 
                 if lhs_type != rhs_type {
-                    Err(SemanticError::invalid_type(lhs_type, rhs_type, rhs.location))
+                    Err(SemanticError::invalid_type(
+                        lhs_type,
+                        rhs_type,
+                        rhs.location,
+                    ))
                 } else {
                     Ok(())
                 }
@@ -102,21 +119,33 @@ impl Analyzer {
 
     fn typecheck_statement(&mut self, statement: &LocStmt) -> Result<(), SemanticError> {
         match &statement.data {
-            Stmt::Assignment {identifier, value} => {
+            Stmt::Assignment { identifier, value } => {
                 let var_type = self.lookup_variable(identifier)?;
                 let value_type = self.typecheck_expression(value)?;
 
                 if var_type != value_type {
-                    Err(SemanticError::invalid_type(var_type, value_type, value.location))
+                    Err(SemanticError::invalid_type(
+                        var_type,
+                        value_type,
+                        value.location,
+                    ))
                 } else {
                     Ok(())
                 }
-            },
-            Stmt::Definition { variable_type, value, .. } => {
+            }
+            Stmt::Definition {
+                variable_type,
+                value,
+                ..
+            } => {
                 let var_type = *variable_type;
                 let value_type = self.typecheck_expression(value)?;
                 if var_type != value_type {
-                    Err(SemanticError::invalid_type(var_type, value_type, value.location))
+                    Err(SemanticError::invalid_type(
+                        var_type,
+                        value_type,
+                        value.location,
+                    ))
                 } else {
                     Ok(())
                 }
@@ -124,7 +153,11 @@ impl Analyzer {
             Stmt::PrintInteger { value } => {
                 let value_type = self.typecheck_expression(value)?;
                 if value_type != Type::Integer {
-                    Err(SemanticError::invalid_type(Type::Integer, value_type, value.location))
+                    Err(SemanticError::invalid_type(
+                        Type::Integer,
+                        value_type,
+                        value.location,
+                    ))
                 } else {
                     Ok(())
                 }
@@ -132,13 +165,16 @@ impl Analyzer {
             Stmt::PrintFraction { value } => {
                 let value_type = self.typecheck_expression(value)?;
                 if value_type != Type::Fraction {
-                    Err(SemanticError::invalid_type(Type::Fraction, value_type, value.location))
+                    Err(SemanticError::invalid_type(
+                        Type::Fraction,
+                        value_type,
+                        value.location,
+                    ))
                 } else {
                     Ok(())
                 }
             }
-            Stmt::While { condition, block }
-            | Stmt::If { condition, block } => {
+            Stmt::While { condition, block } | Stmt::If { condition, block } => {
                 self.typecheck_condition(condition)?;
                 self.typecheck_block(block)?;
                 Ok(())
@@ -154,16 +190,25 @@ impl Analyzer {
     fn define_variable(&mut self, identifier: &str, var_type: &Type) -> Result<(), SemanticError> {
         let ident_key = self.var_interner.get_or_intern(identifier);
         if let Some(_) = self.var_types.insert(ident_key, *var_type) {
-            Err(SemanticError::DoubleDeclaration { name: identifier.to_owned() })
+            Err(SemanticError::DoubleDeclaration {
+                name: identifier.to_owned(),
+            })
         } else {
             Ok(())
         }
     }
 
-    fn typecheck_block(&mut self, statement_list: &Locatable<StmtList>) -> Result<(), SemanticError> {
+    fn typecheck_block(
+        &mut self,
+        statement_list: &Locatable<StmtList>,
+    ) -> Result<(), SemanticError> {
         for stmt in &statement_list.data.stmts {
             match &stmt.data {
-                Stmt::Definition { variable_type, identifier, value: _} => {
+                Stmt::Definition {
+                    variable_type,
+                    identifier,
+                    value: _,
+                } => {
                     self.define_variable(identifier, variable_type)?;
                 }
                 _ => {}
