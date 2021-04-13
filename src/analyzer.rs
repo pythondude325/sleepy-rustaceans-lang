@@ -78,7 +78,27 @@ impl Analyzer {
             }
             Expression::Variable { ident } => { self.lookup_variable(ident)? }
         })
-    }    
+    }
+
+    fn typecheck_condition(&self, cond: &Locatable<Cond>) -> Result<(), SemanticError> {
+        match &cond.data {
+            Cond::Greater { lhs, rhs}
+            | Cond::Equal { lhs, rhs}
+            | Cond::Less { lhs, rhs } => {
+                let lhs_type = self.typecheck_expression(lhs)?;
+                let rhs_type = self.typecheck_expression(rhs)?;
+
+                if lhs_type != rhs_type {
+                    Err(SemanticError::invalid_type(lhs_type, rhs_type, rhs.location))
+                } else {
+                    Ok(())
+                }
+            }
+            _ => {
+                unimplemented!()
+            }
+        }
+    }
 
     fn typecheck_statement(&mut self, statement: &LocStmt) -> Result<(), SemanticError> {
         match &statement.data {
@@ -117,6 +137,12 @@ impl Analyzer {
                     Ok(())
                 }
             }
+            Stmt::While { condition, block }
+            | Stmt::If { condition, block } => {
+                self.typecheck_condition(condition)?;
+                self.typecheck_block(block)?;
+                Ok(())
+            }
             _ => {
                 // Don't do anything for unimplemented statements
                 // TODO: Implement the rest of the statements
@@ -134,20 +160,23 @@ impl Analyzer {
         }
     }
 
-    pub fn typecheck_program(statment_list: &Locatable<StmtList>) -> Result<(), SemanticError> {
-        let mut analyzer = Analyzer::new();
-        
-        for stmt in &statment_list.data.stmts {
+    fn typecheck_block(&mut self, statement_list: &Locatable<StmtList>) -> Result<(), SemanticError> {
+        for stmt in &statement_list.data.stmts {
             match &stmt.data {
                 Stmt::Definition { variable_type, identifier, value: _} => {
-                    analyzer.define_variable(identifier, variable_type)?;
+                    self.define_variable(identifier, variable_type)?;
                 }
                 _ => {}
             }
 
-            analyzer.typecheck_statement(stmt)?;
+            self.typecheck_statement(stmt)?;
         }
+        Ok(())
+    }
 
+    pub fn typecheck_program(statement_list: &Locatable<StmtList>) -> Result<(), SemanticError> {
+        let mut analyzer = Analyzer::new();
+        analyzer.typecheck_block(&statement_list)?;
         Ok(())
     }
 }

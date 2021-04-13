@@ -23,8 +23,8 @@ Statement -> Result<LocStmt, ()>
     | 'PRINTF' Operand { Ok($span.with(Stmt::PrintFraction { value: $2? })) }
     | 'PRINTS' Operand { Ok($span.with(Stmt::PrintString { value: $2? })) }
     | 'PRINTNL' { Ok($span.with(Stmt::PrintNewline)) }
-    | If  { todo!() }
-    | While { todo!() }
+    | If  { $1 }
+    | While { $1 }
     ;
 
 StatementList -> Result<Locatable<StmtList>, ()>
@@ -37,17 +37,17 @@ StatementList -> Result<Locatable<StmtList>, ()>
     ;
 
 Conditional -> Result<Locatable<Cond>, ()>
-    : Expr 'GREATER' Expr { todo!() }
-    | Expr 'EQUAL' Expr   { todo!() }
-    | Expr 'LESS' Expr    { todo!() }
+    : Operand 'GREATER' Operand { Ok($span.with(Cond::Greater { lhs: $1?, rhs: $3? })) }
+    | Operand 'EQUAL' Operand   { Ok($span.with(Cond::Equal { lhs: $1?, rhs: $3? })) }
+    | Operand 'LESS' Operand    { Ok($span.with(Cond::Less { lhs: $1?, rhs: $3? })) }
     ;
 
 If -> Result<Locatable<Stmt>, ()>
-    : 'IF' '(' Conditional ')' StatementList 'BLOCK'  { todo!() }
+    : 'IF' '(' Conditional ')' StatementList 'BLOCK'  { Ok($span.with(Stmt::If { condition: $3?, block: $5? })) }
     ;
 
 While -> Result<Locatable<Stmt>, ()>
-    : 'WHILE' '(' Conditional ')' StatementList 'BLOCK' { todo!() };
+    : 'WHILE' '(' Conditional ')' StatementList 'BLOCK' { Ok($span.with(Stmt::While { condition: $3?, block: $5? })) };
 
 Type -> Result<Type, ()>
     : 'INTEGER' { Ok(Type::Integer) }

@@ -1,0 +1,7 @@
+begin
+define integer i as zero
+while (i less one zero)
+    printI i
+    add i and one into i
+block
+end
