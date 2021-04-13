@@ -111,9 +111,6 @@ impl Analyzer {
                     Ok(())
                 }
             }
-            _ => {
-                unimplemented!()
-            }
         }
     }
 
