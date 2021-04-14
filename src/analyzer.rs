@@ -136,13 +136,18 @@ impl Analyzer {
                 ..
             } => {
                 let var_type = *variable_type;
-                let value_type = self.typecheck_expression(value)?;
-                if var_type != value_type {
-                    Err(SemanticError::invalid_type(
-                        var_type,
-                        value_type,
-                        value.location,
-                    ))
+                if let Some(value) = value {
+                    let value_type = self.typecheck_expression(value)?;
+
+                    if var_type != value_type {
+                        Err(SemanticError::invalid_type(
+                            var_type,
+                            value_type,
+                            value.location,
+                        ))
+                    } else {
+                        Ok(())
+                    }
                 } else {
                     Ok(())
                 }

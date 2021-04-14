@@ -85,7 +85,7 @@ pub enum Stmt {
     Definition {
         variable_type: Type,
         identifier: String,
-        value: LocExpression,
+        value: Option<LocExpression>,
     },
     Assignment {
         identifier: String,

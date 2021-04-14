@@ -10,7 +10,14 @@ Statement -> Result<LocStmt, ()>
         Ok($span.with(Stmt::Definition {
             variable_type: $2?,
             identifier: $3?,
-            value: $5?,
+            value: Some($5?),
+        }))
+    }
+    | 'DEFINE' Type Identifier {
+        Ok($span.with(Stmt::Definition {
+            variable_type: $2?,
+            identifier: $3?,
+            value: None,
         }))
     }
     | Expr 'INTO' Identifier {

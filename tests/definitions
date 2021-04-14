@@ -1,0 +1,6 @@
+begin
+define integer a
+define integer b as three
+define fraction c
+define fraction d as three over five
+end
