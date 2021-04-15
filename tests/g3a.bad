@@ -1,0 +1,4 @@
+begin
+define integer a as zero
+five into a
+end

@@ -1,13 +1,23 @@
-%start Statement
+%start Program
 
 %%
+
+Program -> Result<Locatable<StmtList>, ()>
+    : 'BEGIN' StatementList 'END' { $2 };
 
 Statement -> Result<LocStmt, ()>
     : 'DEFINE' Type Identifier 'AS' Operand {
         Ok($span.with(Stmt::Definition {
             variable_type: $2?,
             identifier: $3?,
-            value: $5?,
+            value: Some($5?),
+        }))
+    }
+    | 'DEFINE' Type Identifier {
+        Ok($span.with(Stmt::Definition {
+            variable_type: $2?,
+            identifier: $3?,
+            value: None,
         }))
     }
     | Expr 'INTO' Identifier {
@@ -20,27 +30,31 @@ Statement -> Result<LocStmt, ()>
     | 'PRINTF' Operand { Ok($span.with(Stmt::PrintFraction { value: $2? })) }
     | 'PRINTS' Operand { Ok($span.with(Stmt::PrintString { value: $2? })) }
     | 'PRINTNL' { Ok($span.with(Stmt::PrintNewline)) }
-    | If  { todo!() }
-    | While { todo!() }
+    | If  { $1 }
+    | While { $1 }
     ;
 
 StatementList -> Result<Locatable<StmtList>, ()>
-  : StatementList Statement  { todo!() }
-  | Statement                     { todo!() }
-  ;
+    : StatementList Statement { 
+        let mut stmt_list = $1?.data;
+        stmt_list.stmts.push($2?);
+        Ok($span.with(stmt_list))
+    }
+    | Statement { Ok($span.with(StmtList { stmts: vec![$1?] })) }
+    ;
 
 Conditional -> Result<Locatable<Cond>, ()>
-    : Expr 'GREATER' Expr { todo!() }
-    | Expr 'EQUAL' Expr   { todo!() }
-    | Expr 'LESS' Expr    { todo!() }
+    : Operand 'GREATER' Operand { Ok($span.with(Cond::Greater { lhs: $1?, rhs: $3? })) }
+    | Operand 'EQUAL' Operand   { Ok($span.with(Cond::Equal { lhs: $1?, rhs: $3? })) }
+    | Operand 'LESS' Operand    { Ok($span.with(Cond::Less { lhs: $1?, rhs: $3? })) }
     ;
 
 If -> Result<Locatable<Stmt>, ()>
-    : 'IF' '(' Conditional ')' StatementList 'BLOCK'  { todo!() }
+    : 'IF' '(' Conditional ')' StatementList 'BLOCK'  { Ok($span.with(Stmt::If { condition: $3?, block: $5? })) }
     ;
 
 While -> Result<Locatable<Stmt>, ()>
-    : 'WHILE' '(' Conditional ')' StatementList 'BLOCK' { todo!() };
+    : 'WHILE' '(' Conditional ')' StatementList 'BLOCK' { Ok($span.with(Stmt::While { condition: $3?, block: $5? })) };
 
 Type -> Result<Type, ()>
     : 'INTEGER' { Ok(Type::Integer) }
@@ -53,12 +67,14 @@ Identifier -> Result<String, ()>
     };
 
 Expr -> Result<LocExpression, ()>
-    : 'ADD' Operand 'AND' Operand { Ok($span.with(Expression::Add{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
+    : 'PUT' Operand { $2 }
+    | 'ADD' Operand 'AND' Operand { Ok($span.with(Expression::Add{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
     | 'SUBTRACT' Operand 'FROM' Operand { Ok($span.with(Expression::Sub{ lhs: Box::new($4?), rhs: Box::new($2?) })) }
     | 'MULTIPLY' Operand 'BY' Operand { Ok($span.with(Expression::Mul{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
     | 'FADD' Operand 'AND' Operand { Ok($span.with(Expression::FAdd{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
     | 'FSUBTRACT' Operand 'FROM' Operand { Ok($span.with(Expression::FSub{ lhs: Box::new($4?), rhs: Box::new($2?) })) }
     | 'FMULTIPLY' Operand 'BY' Operand { Ok($span.with(Expression::FMul{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
+    | 'MAX' 'OF' ArgumentList { Ok($span.with(Expression::Max { args: $3? })) }
     ;
 
 Operand -> Result<LocExpression, ()>
@@ -116,6 +132,14 @@ Digit -> Result<u8, ()> : 'DIGIT'
             _ => return Err(()),
         };
         Ok(value)
+    };
+
+ArgumentList -> Result<Locatable<Vec<LocExpression>>, ()>
+    : Operand { Ok($span.with(vec![$1?])) }
+    | ArgumentList "AND" Operand {
+        let mut list: Vec<LocExpression> = $1?.data;
+        list.push($3?);
+        Ok($span.with(list))
     };
 
 Unmatched -> (): "UNMATCHED" { };

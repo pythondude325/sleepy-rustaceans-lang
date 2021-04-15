@@ -1,0 +1,4 @@
+begin
+define integer x as five
+max of x and zero and negative three into x
+end

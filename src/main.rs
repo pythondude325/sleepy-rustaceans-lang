@@ -1,4 +1,4 @@
-use std::io::{self, BufRead, Write};
+use std::io::{self, Read};
 
 mod types;
 
@@ -18,44 +18,38 @@ mod executer;
 
 mod analyzer;
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     // Get the `LexerDef` for the `calc` language.
     let lexerdef = lang_l::lexerdef();
-    let stdin = io::stdin();
-    loop {
-        print!(">>> ");
-        io::stdout().flush().ok();
-        match stdin.lock().lines().next() {
-            Some(Ok(ref l)) => {
-                if l.trim().is_empty() {
-                    continue;
-                }
-                // Now we create a lexer with the `lexer` method with which
-                // we can lex an input.
-                let lexer = lexerdef.lexer(l);
-                // Pass the lexer to the parser and lex and parse the input.
-                let (res, errs) = lang_y::parse(&lexer);
-                for e in errs {
-                    println!("{}", e.pp(&lexer, &lang_y::token_epp));
-                }
-                match res {
-                    Some(r) => {
-                        // println!("Result: {:?}", r);
-                        match r {
-                            Ok(tree) => {
-                                //execute(&tree).unwrap()
-                                dbg!(&tree);
-                                if let crate::types::Stmt::Assignment { value, .. } = &tree.data {
-                                    let _ = dbg!(analyzer::typecheck_expression(value));
-                                }
-                            },
-                            Err(e) => eprintln!("Parsing Error: {:?}", e),
-                        }
-                    }
-                    _ => eprintln!("Unable to evaluate expression."),
-                }
-            }
-            _ => break,
-        }
+
+    let mut buffer = String::new();
+    io::stdin().read_to_string(&mut buffer)?;
+
+    // Now we create a lexer with the `lexer` method with which
+    // we can lex an input.
+    let lexer = lexerdef.lexer(&buffer);
+    // Pass the lexer to the parser and lex and parse the input.
+    let (res, errs) = lang_y::parse(&lexer);
+    for e in &errs {
+        println!("{}", e.pp(&lexer, &lang_y::token_epp));
     }
+    if errs.len() != 0 {
+        return Ok(());
+    }
+
+    match res {
+        Some(r) => {
+            match r {
+                Ok(tree) => {
+                    //execute(&tree).unwrap()
+                    dbg!(&tree);
+                    dbg!(analyzer::Analyzer::typecheck_program(&tree))?;
+                }
+                Err(e) => eprintln!("Parsing Error: {:?}", e),
+            }
+        }
+        _ => eprintln!("Unable to evaluate expression."),
+    }
+
+    Ok(())
 }

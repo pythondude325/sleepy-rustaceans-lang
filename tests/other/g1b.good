@@ -1,0 +1,6 @@
+begin
+define fraction fracOne as four over three 
+define fraction fracTwo as five over six 
+define fraction fracThree as nine over five
+put add[subtract fracTwo from fracOne] and fracThree into fracThree
+end

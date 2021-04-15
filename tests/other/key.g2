@@ -1,0 +1,4 @@
+point of g2a.good is to ensure a variable can be added to anotehr variable
+point of g2b.good is to ensure negative numbers can be used
+piont of g2a.bad is to test what happens if there is mulitple begins and ends
+point of g2b.bad has several errors and see how gracefully your progam erros checks

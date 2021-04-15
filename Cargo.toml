@@ -1,11 +1,8 @@
 [package]
-name = "sleepy-rustaceans-lang"
-version = "0.1.0"
 authors = ["Graham Scheaffer <me@gisch.dev>", "Aaron Ingalls", "Blake Nedved"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
+name = "sleepy-rustaceans-lang"
+version = "0.1.0"
 [[bin]]
 doc = false
 name = "sleepy-rustaceans-lang"
@@ -17,6 +14,8 @@ lrpar = "0.9"
 
 [dependencies]
 cfgrammar = "0.9"
+lasso = "0.5"
 lrlex = "0.9"
 lrpar = "0.9"
 thiserror = "1.0"
+anyhow = "1.0"

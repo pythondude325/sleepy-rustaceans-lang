@@ -1,0 +1,4 @@
+begin
+define integer x as zero
+put one into x
+end

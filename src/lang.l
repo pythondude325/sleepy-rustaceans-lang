@@ -16,6 +16,7 @@ printNL "PRINTNL"
 negative "NEGATIVE"
 (zero|one|two|three|four|five|six|seven|eight|nine) "DIGIT"
 over "OVER"
+put "PUT"
 add "ADD"
 fadd "FADD"
 and "AND"
@@ -31,8 +32,13 @@ block "BLOCK"
 greater "GREATER"
 equal "EQUAL"
 less "LESS"
+begin "BEGIN"
+end "END"
+
+max "MAX"
+of "OF"
 
 [a-zA-Z]+ "IDENTIFIER"
 
-[\t ]+ ;
+[\n\t ]+ ;
 . "UNMATCHED"
