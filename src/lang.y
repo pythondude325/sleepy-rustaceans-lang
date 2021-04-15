@@ -74,6 +74,7 @@ Expr -> Result<LocExpression, ()>
     | 'FADD' Operand 'AND' Operand { Ok($span.with(Expression::FAdd{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
     | 'FSUBTRACT' Operand 'FROM' Operand { Ok($span.with(Expression::FSub{ lhs: Box::new($4?), rhs: Box::new($2?) })) }
     | 'FMULTIPLY' Operand 'BY' Operand { Ok($span.with(Expression::FMul{ lhs: Box::new($2?), rhs: Box::new($4?) })) }
+    | 'MAX' 'OF' ArgumentList { Ok($span.with(Expression::Max { args: $3? })) }
     ;
 
 Operand -> Result<LocExpression, ()>
@@ -131,6 +132,14 @@ Digit -> Result<u8, ()> : 'DIGIT'
             _ => return Err(()),
         };
         Ok(value)
+    };
+
+ArgumentList -> Result<Locatable<Vec<LocExpression>>, ()>
+    : Operand { Ok($span.with(vec![$1?])) }
+    | ArgumentList "AND" Operand {
+        let mut list: Vec<LocExpression> = $1?.data;
+        list.push($3?);
+        Ok($span.with(list))
     };
 
 Unmatched -> (): "UNMATCHED" { };

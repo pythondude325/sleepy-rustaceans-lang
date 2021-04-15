@@ -35,6 +35,9 @@ less "LESS"
 begin "BEGIN"
 end "END"
 
+max "MAX"
+of "OF"
+
 [a-zA-Z]+ "IDENTIFIER"
 
 [\n\t ]+ ;

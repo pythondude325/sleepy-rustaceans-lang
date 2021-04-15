@@ -56,6 +56,9 @@ pub enum Expression {
         lhs: Box<LocExpression>,
         rhs: Box<LocExpression>,
     },
+    Max {
+        args: Locatable<Vec<LocExpression>>,
+    }
 }
 
 pub type LocExpression = Locatable<Expression>;

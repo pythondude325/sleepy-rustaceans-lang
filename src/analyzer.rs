@@ -16,6 +16,8 @@ pub enum SemanticError {
     UndeclaredVariable { name: String },
     #[error("Variable `{name}` declared twice")]
     DoubleDeclaration { name: String },
+    #[error("Not enough arguments")]
+    NotEnoughArguments { location: Span }
 }
 
 impl SemanticError {
@@ -90,6 +92,24 @@ impl Analyzer {
                 let _rhs_type = self.typecheck_expression(&rhs)?;
 
                 Type::Fraction
+            }
+            Expression::Max { args } => {
+                match args.data.as_slice() {
+                    &[] => unreachable!("arg list must have at least one argument"),
+                    &[_] => return Err(SemanticError::NotEnoughArguments { location: expression.location }),
+                    &[ref first, ref rest @ ..] => {
+                        let first_type = self.typecheck_expression(first)?;
+
+                        for arg in rest {
+                            let arg_type = self.typecheck_expression(arg)?;
+                            if arg_type != first_type {
+                                return Err(SemanticError::invalid_type(first_type, arg_type, arg.location));
+                            }
+                        }
+
+                        first_type
+                    },
+                }
             }
             Expression::Variable { ident } => self.lookup_variable(ident)?,
         })
