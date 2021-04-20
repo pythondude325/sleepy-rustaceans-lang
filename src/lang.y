@@ -28,7 +28,7 @@ Statement -> Result<LocStmt, ()>
     }
     | 'PRINTI' Operand { Ok($span.with(Stmt::PrintInteger { value: $2? })) }
     | 'PRINTF' Operand { Ok($span.with(Stmt::PrintFraction { value: $2? })) }
-    | 'PRINTS' Operand { Ok($span.with(Stmt::PrintString { value: $2? })) }
+    | 'PRINTS' StringLiteral { Ok($span.with(Stmt::PrintString { value: $2? })) }
     | 'PRINTNL' { Ok($span.with(Stmt::PrintNewline)) }
     | If  { $1 }
     | While { $1 }
@@ -54,7 +54,8 @@ If -> Result<Locatable<Stmt>, ()>
     ;
 
 While -> Result<Locatable<Stmt>, ()>
-    : 'WHILE' '(' Conditional ')' StatementList 'BLOCK' { Ok($span.with(Stmt::While { condition: $3?, block: $5? })) };
+    : 'WHILE' '(' Conditional ')' StatementList 'BLOCK' { Ok($span.with(Stmt::While { condition: $3?, block: $5? })) }
+    ;
 
 Type -> Result<Type, ()>
     : 'INTEGER' { Ok(Type::Integer) }
@@ -64,7 +65,14 @@ Type -> Result<Type, ()>
 Identifier -> Result<String, ()>
     : 'IDENTIFIER' {
         Ok($lexer.span_str($1.map_err(|_| ())?.span()).to_owned())
-    };
+    }
+    ;
+
+StringLiteral -> Result<String, ()>
+    : 'STRING_LITERAL' {
+        Ok($lexer.span_str(string_literal_span($1.map_err(|_| ())?.span())).to_owned())
+    }
+    ;
 
 Expr -> Result<LocExpression, ()>
     : 'PUT' Operand { $2 }
@@ -147,6 +155,7 @@ Unmatched -> (): "UNMATCHED" { };
 %%
 
 use crate::types::*;
+use lrpar::Span;
 
 fn digits_to_int(digits: &[u8]) -> Option<i32> {
     let mut integer_value: i32 = 0;
@@ -154,4 +163,8 @@ fn digits_to_int(digits: &[u8]) -> Option<i32> {
         integer_value = integer_value.checked_mul(10)?.checked_add(*digit as i32)?;
     }
     Some(integer_value)
+}
+
+fn string_literal_span(s: Span) -> Span {
+    Span::new(s.start() + 1, s.end() - 1) 
 }

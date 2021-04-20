@@ -38,7 +38,8 @@ end "END"
 max "MAX"
 of "OF"
 
+"(\\.|[^"\\])*" "STRING_LITERAL"
 [a-zA-Z]+ "IDENTIFIER"
 
-[\n\t ]+ ;
+[\n\t\r ]+ ;
 . "UNMATCHED"

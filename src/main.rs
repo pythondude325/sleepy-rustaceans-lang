@@ -1,6 +1,9 @@
 use std::io::{self, Read};
 
+mod compiler;
 mod types;
+
+use compiler::Compiler;
 
 use lrlex::lrlex_mod;
 use lrpar::lrpar_mod;
@@ -42,8 +45,11 @@ fn main() -> anyhow::Result<()> {
             match r {
                 Ok(tree) => {
                     //execute(&tree).unwrap()
-                    dbg!(&tree);
-                    dbg!(analyzer::Analyzer::typecheck_program(&tree))?;
+                    //dbg!(&tree);
+                    //dbg!(analyzer::Analyzer::typecheck_program(&tree))?;
+                    analyzer::Analyzer::typecheck_program(&tree)?;
+                    let mut c = Compiler::new();
+                    print!("{}", c.compile_program(&tree).unwrap());
                 }
                 Err(e) => eprintln!("Parsing Error: {:?}", e),
             }
