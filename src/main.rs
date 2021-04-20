@@ -21,9 +21,15 @@ mod analyzer;
 fn main() -> anyhow::Result<()> {
     // Get the `LexerDef` for the `calc` language.
     let lexerdef = lang_l::lexerdef();
+    let args: Vec<String> = std::env::args().collect();
 
-    let mut buffer = String::new();
-    io::stdin().read_to_string(&mut buffer)?;
+    let mut buffer: String;
+    if args.len() == 1 {
+      buffer = String::new();
+      io::stdin().read_to_string(&mut buffer)?;
+    } else {
+      buffer = std::fs::read_to_string(&args[1]).unwrap();
+    }
 
     // Now we create a lexer with the `lexer` method with which
     // we can lex an input.
@@ -42,8 +48,10 @@ fn main() -> anyhow::Result<()> {
             match r {
                 Ok(tree) => {
                     //execute(&tree).unwrap()
-                    dbg!(&tree);
-                    dbg!(analyzer::Analyzer::typecheck_program(&tree))?;
+                    // dbg!(&tree);
+                    // dbg!(analyzer::Analyzer::typecheck_program(&tree))?;
+                    analyzer::Analyzer::typecheck_program(&tree)?;
+                    println!("Program parsed with no errors");
                 }
                 Err(e) => eprintln!("Parsing Error: {:?}", e),
             }
