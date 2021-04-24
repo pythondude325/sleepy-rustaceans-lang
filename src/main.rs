@@ -50,8 +50,13 @@ fn main() -> anyhow::Result<()> {
                     //execute(&tree).unwrap()
                     // dbg!(&tree);
                     // dbg!(analyzer::Analyzer::typecheck_program(&tree))?;
-                    analyzer::Analyzer::typecheck_program(&tree)?;
+                    let type_cache = analyzer::Analyzer::typecheck_program(&tree)?;
                     println!("Program parsed with no errors");
+                    
+                    // example to just dump the contents of the type cache, you can delete this if you need.
+                    for (k, v) in type_cache.iter() {
+                        println!("{:?} is of type {:?}", **k, v);
+                    }
                 }
                 Err(e) => eprintln!("Parsing Error: {:?}", e),
             }

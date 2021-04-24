@@ -3,6 +3,8 @@ use lasso::{Rodeo, Spur};
 use lrpar::Span;
 use std::collections::HashMap;
 use thiserror::Error;
+use std::hash::{Hash, Hasher};
+use std::{cmp, ops};
 
 #[derive(Error, Debug)]
 pub enum SemanticError {
@@ -30,16 +32,42 @@ impl SemanticError {
     }
 }
 
-pub struct Analyzer {
-    var_interner: lasso::Rodeo,
-    var_types: HashMap<Spur, Type>,
+
+pub struct HashRef<'live, T>(pub &'live T);
+
+impl<T> cmp::PartialEq for HashRef<'_, T> {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self.0, other.0)
+    }
 }
 
-impl Analyzer {
-    fn new() -> Analyzer {
+impl<T> cmp::Eq for HashRef<'_, T> {}
+
+impl<T> Hash for HashRef<'_, T> {
+    fn hash<H: Hasher>(&self, h: &mut H){
+        std::ptr::hash(self.0, h);
+    }
+}
+
+impl<T> ops::Deref for HashRef<'_, T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        return self.0;
+    }
+}
+
+pub struct Analyzer<'ast> {
+    var_interner: lasso::Rodeo,
+    var_types: HashMap<Spur, Type>,
+    type_cache: HashMap<HashRef<'ast, LocExpression>, Type>,
+}
+
+impl<'ast> Analyzer<'ast> {
+    fn new() -> Analyzer<'ast> {
         Analyzer {
             var_interner: Rodeo::default(),
             var_types: HashMap::new(),
+            type_cache: HashMap::new(),
         }
     }
 
@@ -57,8 +85,8 @@ impl Analyzer {
             .clone())
     }
 
-    pub fn typecheck_expression(&self, expression: &LocExpression) -> Result<Type, SemanticError> {
-        Ok(match &expression.data {
+    pub fn typecheck_expression(&mut self, expression: &'ast LocExpression) -> Result<Type, SemanticError> {
+        let expression_type = match &expression.data {
             Expression::Int { .. } => Type::Integer,
             Expression::Fraction { .. } => Type::Fraction,
             Expression::Add { lhs, rhs }
@@ -112,10 +140,14 @@ impl Analyzer {
                 }
             }
             Expression::Variable { ident } => self.lookup_variable(ident)?,
-        })
+        };
+
+        self.type_cache.insert(HashRef(expression), expression_type);
+
+        return Ok(expression_type);
     }
 
-    fn typecheck_condition(&self, cond: &Locatable<Cond>) -> Result<(), SemanticError> {
+    fn typecheck_condition(&mut self, cond: &'ast Locatable<Cond>) -> Result<(), SemanticError> {
         match &cond.data {
             Cond::Greater { lhs, rhs } | Cond::Equal { lhs, rhs } | Cond::Less { lhs, rhs } => {
                 let lhs_type = self.typecheck_expression(lhs)?;
@@ -134,7 +166,7 @@ impl Analyzer {
         }
     }
 
-    fn typecheck_statement(&mut self, statement: &LocStmt) -> Result<(), SemanticError> {
+    fn typecheck_statement(&mut self, statement: &'ast LocStmt) -> Result<(), SemanticError> {
         match &statement.data {
             Stmt::Assignment { identifier, value } => {
                 let var_type = self.lookup_variable(identifier)?;
@@ -222,7 +254,7 @@ impl Analyzer {
 
     fn typecheck_block(
         &mut self,
-        statement_list: &Locatable<StmtList>,
+        statement_list: &'ast Locatable<StmtList>,
     ) -> Result<(), SemanticError> {
         for stmt in &statement_list.data.stmts {
             match &stmt.data {
@@ -241,9 +273,9 @@ impl Analyzer {
         Ok(())
     }
 
-    pub fn typecheck_program(statement_list: &Locatable<StmtList>) -> Result<(), SemanticError> {
+    pub fn typecheck_program(statement_list: &'ast Locatable<StmtList>) -> Result<HashMap<HashRef<'ast, LocExpression>, Type>, SemanticError> {
         let mut analyzer = Analyzer::new();
         analyzer.typecheck_block(&statement_list)?;
-        Ok(())
+        Ok(analyzer.type_cache)
     }
 }
