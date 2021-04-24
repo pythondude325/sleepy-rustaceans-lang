@@ -8,26 +8,26 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum SemanticError {
-    #[error("invalid type. expected {expected_type} got {found_type}")]
+    #[error("invalid type. expected {expected_type} got {found_type}\n{location}")]
     InvalidType {
         expected_type: Type,
         found_type: Type,
-        location: Span,
+        location: String,
     },
     #[error("undeclared variable `{name}`")]
     UndeclaredVariable { name: String },
     #[error("Variable `{name}` declared twice")]
     DoubleDeclaration { name: String },
-    #[error("Not enough arguments")]
-    NotEnoughArguments { location: Span },
+    #[error("Not enough arguments\n{location}")]
+    NotEnoughArguments { location: String },
 }
 
 impl SemanticError {
-    fn invalid_type(expected: Type, found: Type, span: Span) -> SemanticError {
+    fn invalid_type(expected: Type, found: Type, line: String) -> SemanticError {
         SemanticError::InvalidType {
             expected_type: expected,
             found_type: found,
-            location: span,
+            location: line,
         }
     }
 }
@@ -69,14 +69,6 @@ struct TextPosition {
     line_end: usize,
     length: usize,
 }
-
-// impl Analyzer {
-//     fn new(program: &String) -> Analyzer {
-//         Analyzer {
-//             var_interner: Rodeo::default(),
-//             var_types: HashMap::new(),
-//             program_data: program.clone(),
-// }
 
 impl<'ast> Analyzer<'ast> {
     fn new(program: &String) -> Analyzer<'ast> {
@@ -128,25 +120,20 @@ impl<'ast> Analyzer<'ast> {
         };
     }
 
-    fn print_error(&self, location: Span) {
+    fn get_err_line(&self, location: Span) -> String {
         let error_pos = self.get_pos(location);
 
         let mut line = error_pos.line_number.to_string();
-        line.push_str("| ");
+        line.push_str(" | ");
         line.push_str(
             self.program_data
                 .get(error_pos.line_start..error_pos.line_end)
                 .unwrap(),
         );
-        let mut error = String::from("^");
-        error.push_str(&"~".repeat(error_pos.length - 1));
-        println!("{}", line);
-        println!(
-            "{:indent$}{}",
-            "",
-            error,
-            indent = (error_pos.col_number + 2) as usize
-        );
+        line.push_str("\n");
+        line.push_str(&" ".repeat((error_pos.col_number + 3) as usize));
+        line.push_str(&"^".repeat(error_pos.length));
+        return line;
     }
     pub fn typecheck_expression(
         &mut self,
@@ -163,7 +150,7 @@ impl<'ast> Analyzer<'ast> {
                     return Err(SemanticError::invalid_type(
                         Type::Integer,
                         lhs_type,
-                        lhs.location,
+                        self.get_err_line(lhs.location),
                     ));
                 }
 
@@ -172,7 +159,7 @@ impl<'ast> Analyzer<'ast> {
                     return Err(SemanticError::invalid_type(
                         Type::Integer,
                         rhs_type,
-                        rhs.location,
+                        self.get_err_line(rhs.location),
                     ));
                 }
 
@@ -191,7 +178,7 @@ impl<'ast> Analyzer<'ast> {
                 &[] => unreachable!("arg list must have at least one argument"),
                 &[_] => {
                     return Err(SemanticError::NotEnoughArguments {
-                        location: expression.location,
+                        location: self.get_err_line(expression.location),
                     })
                 }
                 &[ref first, ref rest @ ..] => {
@@ -203,7 +190,7 @@ impl<'ast> Analyzer<'ast> {
                             return Err(SemanticError::invalid_type(
                                 first_type,
                                 arg_type,
-                                arg.location,
+                                self.get_err_line(arg.location),
                             ));
                         }
                     }
@@ -229,7 +216,7 @@ impl<'ast> Analyzer<'ast> {
                     Err(SemanticError::invalid_type(
                         lhs_type,
                         rhs_type,
-                        rhs.location,
+                        self.get_err_line(rhs.location),
                     ))
                 } else {
                     Ok(())
@@ -248,7 +235,7 @@ impl<'ast> Analyzer<'ast> {
                     Err(SemanticError::invalid_type(
                         var_type,
                         value_type,
-                        value.location,
+                        self.get_err_line(value.location),
                     ))
                 } else {
                     Ok(())
@@ -267,7 +254,7 @@ impl<'ast> Analyzer<'ast> {
                         Err(SemanticError::invalid_type(
                             var_type,
                             value_type,
-                            value.location,
+                            self.get_err_line(value.location),
                         ))
                     } else {
                         Ok(())
@@ -279,11 +266,10 @@ impl<'ast> Analyzer<'ast> {
             Stmt::PrintInteger { value } => {
                 let value_type = self.typecheck_expression(value)?;
                 if value_type != Type::Integer {
-                    self.print_error(value.location);
                     Err(SemanticError::invalid_type(
                         Type::Integer,
                         value_type,
-                        value.location,
+                        self.get_err_line(value.location),
                     ))
                 } else {
                     Ok(())
@@ -295,7 +281,7 @@ impl<'ast> Analyzer<'ast> {
                     Err(SemanticError::invalid_type(
                         Type::Fraction,
                         value_type,
-                        value.location,
+                        self.get_err_line(value.location),
                     ))
                 } else {
                     Ok(())
