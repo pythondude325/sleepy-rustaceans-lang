@@ -25,10 +25,10 @@ fn main() -> anyhow::Result<()> {
 
     let mut buffer: String;
     if args.len() == 1 {
-      buffer = String::new();
-      io::stdin().read_to_string(&mut buffer)?;
+        buffer = String::new();
+        io::stdin().read_to_string(&mut buffer)?;
     } else {
-      buffer = std::fs::read_to_string(&args[1]).unwrap();
+        buffer = std::fs::read_to_string(&args[1]).unwrap();
     }
 
     // Now we create a lexer with the `lexer` method with which
@@ -50,7 +50,7 @@ fn main() -> anyhow::Result<()> {
                     //execute(&tree).unwrap()
                     // dbg!(&tree);
                     // dbg!(analyzer::Analyzer::typecheck_program(&tree))?;
-                    analyzer::Analyzer::typecheck_program(&tree)?;
+                    analyzer::Analyzer::typecheck_program(&tree, &buffer)?;
                     println!("Program parsed with no errors");
                 }
                 Err(e) => eprintln!("Parsing Error: {:?}", e),
