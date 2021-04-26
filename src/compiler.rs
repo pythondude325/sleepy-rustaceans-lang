@@ -229,25 +229,45 @@ typedef struct {
 	int num, den;
 } frac;
 
+frac new_frac(int num, int den) {
+	frac f;
+	f.num = num;
+	f.den = den;
+	return f;
+}
+
+frac reduce(frac x) {
+    int remainder;
+		int n = x.num;
+		int m = x.den;
+    while (n != 0) {
+        remainder = m % n;
+        m = n;
+        n = remainder;
+    }
+
+		return new_frac(x.num / m, x.den / m);
+}
+
 frac frac_add(frac a, frac b) {
 	frac c;
 	c.num = a.num * b.den + b.num * a.den;
 	c.den = a.den * b.den;
-	return c;
+	return reduce(c);
 }
 
 frac frac_sub(frac a, frac b) {
 	frac c;
 	c.num = a.num * b.den - b.num * a.den;
 	c.den = a.den * b.den;
-	return c;
+	return reduce(c);
 }
 
 frac frac_mul(frac a, frac b) {
 	frac c;
 	c.num = a.num * b.num;
 	c.den = a.den * b.den;
-	return c;
+	return reduce(c);
 }
 
 int frac_gt(frac a, frac b) {
@@ -265,13 +285,6 @@ int frac_lt(frac a, frac b) {
 frac max_f(frac a, frac b) {
     if (frac_gt(a, b)) return a;
     else return b;
-}
-
-frac new_frac(int num, int den) {
-	frac f;
-	f.num = num;
-	f.den = den;
-	return f;
 }
 
 void print_fraction(frac f) {
