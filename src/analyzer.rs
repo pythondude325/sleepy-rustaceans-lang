@@ -290,7 +290,7 @@ impl<'ast> Analyzer<'ast> {
             }
             Stmt::While { condition, block } | Stmt::If { condition, block } => {
                 self.typecheck_condition(condition)?;
-                self.typecheck_block(block)?;
+                self.typecheck_block(block);
                 Ok(())
             }
             _ => {
@@ -315,7 +315,7 @@ impl<'ast> Analyzer<'ast> {
     fn typecheck_block(
         &mut self,
         statement_list: &'ast Locatable<StmtList>,
-    ) -> Result<(), SemanticError> {
+    ) {
         for stmt in &statement_list.data.stmts {
             match &stmt.data {
                 Stmt::Definition {
@@ -323,7 +323,11 @@ impl<'ast> Analyzer<'ast> {
                     identifier,
                     value: _,
                 } => {
-                    self.define_variable(identifier, variable_type)?;
+                    let result = self.define_variable(identifier, variable_type);
+                
+                    if let Err(err) = result {
+                        self.errors.push(err);
+                    }
                 }
                 _ => {}
             }
@@ -334,7 +338,6 @@ impl<'ast> Analyzer<'ast> {
                 self.errors.push(err);
             }
         }
-        Ok(())
     }
 
     pub fn typecheck_program(
