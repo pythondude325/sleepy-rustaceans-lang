@@ -123,17 +123,16 @@ impl<'ast> Analyzer<'ast> {
     fn get_err_line(&self, location: Span) -> String {
         let error_pos = self.get_pos(location);
 
-        let mut line = error_pos.line_number.to_string();
-        line.push_str(" | ");
-        line.push_str(
-            self.program_data
-                .get(error_pos.line_start..error_pos.line_end)
-                .unwrap(),
-        );
-        line.push_str("\n");
-        line.push_str(&" ".repeat((error_pos.col_number + 3) as usize));
-        line.push_str(&"^".repeat(error_pos.length));
-        return line;
+        let mut line = String::from(" ");
+        line += error_pos.line_number.to_string().as_str();
+        line += " | ";
+        line += self.program_data
+                    .get(error_pos.line_start..error_pos.line_end)
+                    .unwrap();
+        line += "\n";
+        line += &" ".repeat((error_pos.col_number + 4) as usize);
+        line += &"^".repeat(error_pos.length);
+        line
     }
     pub fn typecheck_expression(
         &mut self,
