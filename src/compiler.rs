@@ -1,21 +1,24 @@
 use std::collections::HashMap;
+use reduce::Reduce;
 
 use crate::types::*;
+use crate::analyzer::HashRef;
 
-pub struct Compiler {
+pub struct Compiler<'ast> {
     //main_body: String,
     vars: HashMap<String, (String, Type)>,
     curr_int: i32,
     curr_frac: i32,
+    type_cache: HashMap<HashRef<'ast, LocExpression>, Type>,
 }
 
-impl Compiler {
-    pub fn new() -> Self {
+impl<'ast> Compiler<'ast> {
+    pub fn new(type_cache: HashMap<HashRef<'ast, LocExpression>, Type>) -> Self {
         Compiler {
-            //main_body: String::new(),
             vars: HashMap::new(),
             curr_int: 0,
-            curr_frac: 0
+            curr_frac: 0,
+            type_cache
         }
     }
 
@@ -138,7 +141,14 @@ impl Compiler {
             Expression::FSub { ref lhs, ref rhs } => format!("frac_sub({}, {})", self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?),
             Expression::FMul { ref lhs, ref rhs } => format!("frac_mul({}, {})", self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?),
 
-            Expression::Max { .. } => String::from(""),
+            Expression::Max { ref args } => {
+                let frac = self.type_cache.get(&HashRef(val)).unwrap() == &Type::Fraction;
+                args.data
+                    .iter()
+                    .map(|e| self.build_expression(e, Some(if frac { Type::Fraction } else { Type::Integer })).unwrap())
+                    .reduce(|acc, x| format!("max{}({},{})", if frac { "_f" } else { "" }, x, acc))
+                    .unwrap()
+            },
             Expression::Variable { ref ident } => {
                 match target_type {
                     Some(t) => match (self.vars.get(ident).unwrap().1, t) {
@@ -252,6 +262,11 @@ int frac_lt(frac a, frac b) {
 	return (a.num * b.den) < (b.num * a.den); 
 }
 
+frac max_f(frac a, frac b) {
+    if (frac_gt(a, b)) return a;
+    else return b;
+}
+
 frac new_frac(int num, int den) {
 	frac f;
 	f.num = num;
@@ -261,6 +276,10 @@ frac new_frac(int num, int den) {
 
 void print_fraction(frac f) {
 	printf("%d/%d", f.num, f.den);
+}
+
+int max(int a, int b) {
+    return a > b ? a : b;
 }
 
 int main() {

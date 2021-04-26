@@ -1,4 +1,5 @@
 use std::io::{self, Read};
+use std::path::Path;
 
 mod compiler;
 mod types;
@@ -59,8 +60,10 @@ fn main() -> anyhow::Result<()> {
                     for (k, v) in type_cache.iter() {
                         println!("{:?} is of type {:?}", **k, v);
                     }
-                    let mut c = Compiler::new();
-                    print!("{}", c.compile_program(&tree).unwrap());
+                    let mut c = Compiler::new(type_cache);
+                    let program = c.compile_program(&tree).unwrap();
+
+                    std::fs::write(format!("{}.c", Path::new(&args[1]).file_name().unwrap().to_str().unwrap()), program)?;
                 }
                 Err(e) => eprintln!("Parsing Error: {:?}", e),
             }

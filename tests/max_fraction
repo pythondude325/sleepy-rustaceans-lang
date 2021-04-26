@@ -1,0 +1,5 @@
+begin
+define fraction m
+max of one over two and two and three over four into m
+printF m
+end
