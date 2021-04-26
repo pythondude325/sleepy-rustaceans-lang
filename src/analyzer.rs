@@ -2,44 +2,81 @@ use crate::types::*;
 use lasso::{Rodeo, Spur};
 use lrpar::Span;
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::{cmp, ops};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum SemanticError {
-    #[error("invalid type. expected {expected_type} got {found_type}")]
+    #[error("invalid type. expected {expected_type} got {found_type}\n{location}")]
     InvalidType {
         expected_type: Type,
         found_type: Type,
-        location: Span,
+        location: String,
     },
     #[error("undeclared variable `{name}`")]
     UndeclaredVariable { name: String },
     #[error("Variable `{name}` declared twice")]
     DoubleDeclaration { name: String },
-    #[error("Not enough arguments")]
-    NotEnoughArguments { location: Span }
+    #[error("Not enough arguments\n{location}")]
+    NotEnoughArguments { location: String },
 }
 
 impl SemanticError {
-    fn invalid_type(expected: Type, found: Type, span: Span) -> SemanticError {
+    fn invalid_type(expected: Type, found: Type, line: String) -> SemanticError {
         SemanticError::InvalidType {
             expected_type: expected,
             found_type: found,
-            location: span,
+            location: line,
         }
     }
 }
 
-pub struct Analyzer {
-    var_interner: lasso::Rodeo,
-    var_types: HashMap<Spur, Type>,
+pub struct HashRef<'live, T>(pub &'live T);
+
+impl<T> cmp::PartialEq for HashRef<'_, T> {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self.0, other.0)
+    }
 }
 
-impl Analyzer {
-    fn new() -> Analyzer {
+impl<T> cmp::Eq for HashRef<'_, T> {}
+
+impl<T> Hash for HashRef<'_, T> {
+    fn hash<H: Hasher>(&self, h: &mut H) {
+        std::ptr::hash(self.0, h);
+    }
+}
+
+impl<T> ops::Deref for HashRef<'_, T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        return self.0;
+    }
+}
+
+pub struct Analyzer<'ast> {
+    var_interner: lasso::Rodeo,
+    var_types: HashMap<Spur, Type>,
+    type_cache: HashMap<HashRef<'ast, LocExpression>, Type>,
+    program_data: String,
+}
+
+struct TextPosition {
+    line_number: i32,
+    col_number: i32,
+    line_start: usize,
+    line_end: usize,
+    length: usize,
+}
+
+impl<'ast> Analyzer<'ast> {
+    fn new(program: &String) -> Analyzer<'ast> {
         Analyzer {
             var_interner: Rodeo::default(),
             var_types: HashMap::new(),
+            type_cache: HashMap::new(),
+            program_data: program.clone(),
         }
     }
 
@@ -56,9 +93,53 @@ impl Analyzer {
             .expect("variable must exist")
             .clone())
     }
+    fn get_pos(&self, location: Span) -> TextPosition {
+        let mut n = 1;
+        let mut pos = 0;
+        let mut temp = 0;
+        for c in self.program_data.chars().take(location.start()) {
+            if c == '\n' {
+                n += 1;
+                pos += temp;
+                temp = 0;
+            }
+            temp += 1;
+        }
+        let mut i = location.end();
+        let mut c = self.program_data.chars().nth(i).unwrap();
+        while c != '\n' {
+            i += 1;
+            c = self.program_data.chars().nth(i).unwrap();
+        }
+        return TextPosition {
+            line_number: n,
+            col_number: location.start() as i32 - pos,
+            line_start: (pos + 1) as usize,
+            line_end: i,
+            length: location.end() - location.start(),
+        };
+    }
 
-    pub fn typecheck_expression(&self, expression: &LocExpression) -> Result<Type, SemanticError> {
-        Ok(match &expression.data {
+    fn get_err_line(&self, location: Span) -> String {
+        let error_pos = self.get_pos(location);
+
+        let mut line = error_pos.line_number.to_string();
+        line.push_str(" | ");
+        line.push_str(
+            self.program_data
+                .get(error_pos.line_start..error_pos.line_end)
+                .unwrap(),
+        );
+        line.push_str("\n");
+        line.push_str(&" ".repeat((error_pos.col_number + 3) as usize));
+        line.push_str(&"^".repeat(error_pos.length));
+        return line;
+    }
+    pub fn typecheck_expression(
+        &mut self,
+        expression: &'ast LocExpression,
+    ) -> Result<Type, SemanticError> {
+        let expression_type = match &expression.data {
             Expression::Int { .. } => Type::Integer,
             Expression::Fraction { .. } => Type::Fraction,
             Expression::Add { lhs, rhs }
@@ -69,7 +150,7 @@ impl Analyzer {
                     return Err(SemanticError::invalid_type(
                         Type::Integer,
                         lhs_type,
-                        lhs.location,
+                        self.get_err_line(lhs.location),
                     ));
                 }
 
@@ -78,7 +159,7 @@ impl Analyzer {
                     return Err(SemanticError::invalid_type(
                         Type::Integer,
                         rhs_type,
-                        rhs.location,
+                        self.get_err_line(rhs.location),
                     ));
                 }
 
@@ -93,29 +174,39 @@ impl Analyzer {
 
                 Type::Fraction
             }
-            Expression::Max { args } => {
-                match args.data.as_slice() {
-                    &[] => unreachable!("arg list must have at least one argument"),
-                    &[_] => return Err(SemanticError::NotEnoughArguments { location: expression.location }),
-                    &[ref first, ref rest @ ..] => {
-                        let first_type = self.typecheck_expression(first)?;
-
-                        for arg in rest {
-                            let arg_type = self.typecheck_expression(arg)?;
-                            if arg_type != first_type {
-                                return Err(SemanticError::invalid_type(first_type, arg_type, arg.location));
-                            }
-                        }
-
-                        first_type
-                    },
+            Expression::Max { args } => match args.data.as_slice() {
+                &[] => unreachable!("arg list must have at least one argument"),
+                &[_] => {
+                    return Err(SemanticError::NotEnoughArguments {
+                        location: self.get_err_line(expression.location),
+                    })
                 }
-            }
+                &[ref first, ref rest @ ..] => {
+                    let first_type = self.typecheck_expression(first)?;
+
+                    for arg in rest {
+                        let arg_type = self.typecheck_expression(arg)?;
+                        if arg_type != first_type {
+                            return Err(SemanticError::invalid_type(
+                                first_type,
+                                arg_type,
+                                self.get_err_line(arg.location),
+                            ));
+                        }
+                    }
+
+                    first_type
+                }
+            },
             Expression::Variable { ident } => self.lookup_variable(ident)?,
-        })
+        };
+
+        self.type_cache.insert(HashRef(expression), expression_type);
+
+        return Ok(expression_type);
     }
 
-    fn typecheck_condition(&self, cond: &Locatable<Cond>) -> Result<(), SemanticError> {
+    fn typecheck_condition(&mut self, cond: &'ast Locatable<Cond>) -> Result<(), SemanticError> {
         match &cond.data {
             Cond::Greater { lhs, rhs } | Cond::Equal { lhs, rhs } | Cond::Less { lhs, rhs } => {
                 let lhs_type = self.typecheck_expression(lhs)?;
@@ -125,7 +216,7 @@ impl Analyzer {
                     Err(SemanticError::invalid_type(
                         lhs_type,
                         rhs_type,
-                        rhs.location,
+                        self.get_err_line(rhs.location),
                     ))
                 } else {
                     Ok(())
@@ -134,7 +225,7 @@ impl Analyzer {
         }
     }
 
-    fn typecheck_statement(&mut self, statement: &LocStmt) -> Result<(), SemanticError> {
+    fn typecheck_statement(&mut self, statement: &'ast LocStmt) -> Result<(), SemanticError> {
         match &statement.data {
             Stmt::Assignment { identifier, value } => {
                 let var_type = self.lookup_variable(identifier)?;
@@ -144,7 +235,7 @@ impl Analyzer {
                     Err(SemanticError::invalid_type(
                         var_type,
                         value_type,
-                        value.location,
+                        self.get_err_line(value.location),
                     ))
                 } else {
                     Ok(())
@@ -163,7 +254,7 @@ impl Analyzer {
                         Err(SemanticError::invalid_type(
                             var_type,
                             value_type,
-                            value.location,
+                            self.get_err_line(value.location),
                         ))
                     } else {
                         Ok(())
@@ -178,7 +269,7 @@ impl Analyzer {
                     Err(SemanticError::invalid_type(
                         Type::Integer,
                         value_type,
-                        value.location,
+                        self.get_err_line(value.location),
                     ))
                 } else {
                     Ok(())
@@ -190,7 +281,7 @@ impl Analyzer {
                     Err(SemanticError::invalid_type(
                         Type::Fraction,
                         value_type,
-                        value.location,
+                        self.get_err_line(value.location),
                     ))
                 } else {
                     Ok(())
@@ -222,7 +313,7 @@ impl Analyzer {
 
     fn typecheck_block(
         &mut self,
-        statement_list: &Locatable<StmtList>,
+        statement_list: &'ast Locatable<StmtList>,
     ) -> Result<(), SemanticError> {
         for stmt in &statement_list.data.stmts {
             match &stmt.data {
@@ -241,9 +332,12 @@ impl Analyzer {
         Ok(())
     }
 
-    pub fn typecheck_program(statement_list: &Locatable<StmtList>) -> Result<(), SemanticError> {
-        let mut analyzer = Analyzer::new();
+    pub fn typecheck_program(
+        statement_list: &'ast Locatable<StmtList>,
+        buffer: &String,
+    ) -> Result<HashMap<HashRef<'ast, LocExpression>, Type>, SemanticError> {
+        let mut analyzer = Analyzer::new(buffer);
         analyzer.typecheck_block(&statement_list)?;
-        Ok(())
+        Ok(analyzer.type_cache)
     }
 }

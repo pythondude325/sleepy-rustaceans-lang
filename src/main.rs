@@ -24,9 +24,15 @@ mod analyzer;
 fn main() -> anyhow::Result<()> {
     // Get the `LexerDef` for the `calc` language.
     let lexerdef = lang_l::lexerdef();
+    let args: Vec<String> = std::env::args().collect();
 
-    let mut buffer = String::new();
-    io::stdin().read_to_string(&mut buffer)?;
+    let mut buffer: String;
+    if args.len() == 1 {
+        buffer = String::new();
+        io::stdin().read_to_string(&mut buffer)?;
+    } else {
+        buffer = std::fs::read_to_string(&args[1]).unwrap();
+    }
 
     // Now we create a lexer with the `lexer` method with which
     // we can lex an input.
@@ -45,9 +51,14 @@ fn main() -> anyhow::Result<()> {
             match r {
                 Ok(tree) => {
                     //execute(&tree).unwrap()
-                    //dbg!(&tree);
-                    //dbg!(analyzer::Analyzer::typecheck_program(&tree))?;
-                    analyzer::Analyzer::typecheck_program(&tree)?;
+                    // dbg!(&tree);
+                    // dbg!(analyzer::Analyzer::typecheck_program(&tree))?;
+                    let type_cache = analyzer::Analyzer::typecheck_program(&tree, &buffer)?;
+                    println!("Program parsed with no errors");
+                    // example to just dump the contents of the type cache, you can delete this if you need.
+                    for (k, v) in type_cache.iter() {
+                        println!("{:?} is of type {:?}", **k, v);
+                    }
                     let mut c = Compiler::new();
                     print!("{}", c.compile_program(&tree).unwrap());
                 }
