@@ -1,6 +1,9 @@
 use std::io::{self, Read};
 
+mod compiler;
 mod types;
+
+use compiler::Compiler;
 
 use lrlex::lrlex_mod;
 use lrpar::lrpar_mod;
@@ -56,6 +59,8 @@ fn main() -> anyhow::Result<()> {
                     for (k, v) in type_cache.iter() {
                         println!("{:?} is of type {:?}", **k, v);
                     }
+                    let mut c = Compiler::new();
+                    print!("{}", c.compile_program(&tree).unwrap());
                 }
                 Err(e) => eprintln!("Parsing Error: {:?}", e),
             }
