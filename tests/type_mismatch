@@ -3,4 +3,8 @@ define integer a as four
 put four over five into a
 put one over two into a
 put eight into b
+
+fadd three and
+four into a
+
 end

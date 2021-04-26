@@ -7,6 +7,16 @@ pub struct Locatable<T> {
     pub location: Span,
 }
 
+impl<T> Locatable<T> {
+    pub fn as_ref(&self) -> Locatable<&T> {
+        self.location.with(&self.data)
+    }
+
+    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Locatable<U> {
+        self.location.with(f(self.data))
+    }
+}
+
 pub trait LocatableExt {
     fn with<T>(self, data: T) -> Locatable<T>;
 }
@@ -58,7 +68,7 @@ pub enum Expression {
     },
     Max {
         args: Locatable<Vec<LocExpression>>,
-    }
+    },
 }
 
 pub type LocExpression = Locatable<Expression>;
@@ -87,11 +97,11 @@ impl fmt::Display for Type {
 pub enum Stmt {
     Definition {
         variable_type: Type,
-        identifier: String,
+        identifier: Locatable<String>,
         value: Option<LocExpression>,
     },
     Assignment {
-        identifier: String,
+        identifier: Locatable<String>,
         value: LocExpression,
     },
     PrintInteger {
@@ -101,7 +111,7 @@ pub enum Stmt {
         value: LocExpression,
     },
     PrintString {
-        value: String
+        value: String,
     },
     PrintNewline,
     If {

@@ -62,9 +62,9 @@ Type -> Result<Type, ()>
     | 'FRACTION' { Ok(Type::Fraction) }
     ;
 
-Identifier -> Result<String, ()>
+Identifier -> Result<Locatable<String>, ()>
     : 'IDENTIFIER' {
-        Ok($lexer.span_str($1.map_err(|_| ())?.span()).to_owned())
+        Ok($span.with($lexer.span_str($1.map_err(|_| ())?.span()).to_owned()))
     }
     ;
 
@@ -89,7 +89,7 @@ Operand -> Result<LocExpression, ()>
     :  '[' Expr ']' { $2 }
     | Number { $1 }
     | Fraction { $1 }
-    | Identifier { Ok($span.with(Expression::Variable { ident: $1? })) }
+    | Identifier { Ok($span.with(Expression::Variable { ident: $1?.data })) }
     ;
 
 Fraction -> Result<LocExpression, ()>

@@ -38,8 +38,8 @@ impl<'ast> Compiler<'ast> {
 
     fn compile_stmt(&mut self, stmt: &LocStmt) -> Result<String, &'static str> {
         Ok(match stmt.data {
-            Stmt::Definition { ref variable_type, ref identifier, ref value } => self.build_definition(variable_type, identifier, value)?,
-            Stmt::Assignment { ref identifier, ref value } => self.build_assignment(identifier, value)?,
+            Stmt::Definition { ref variable_type, ref identifier, ref value } => self.build_definition(variable_type, &identifier.data, value)?,
+            Stmt::Assignment { ref identifier, ref value } => self.build_assignment(&identifier.data, value)?,
             Stmt::PrintString { ref value } => self.build_print_string(value)?,
             Stmt::PrintInteger { ref value } => self.build_print_integer(value)?,
             Stmt::PrintFraction { ref value } => self.build_print_fraction(value)?,
