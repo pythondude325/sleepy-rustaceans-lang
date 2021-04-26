@@ -51,15 +51,18 @@ fn main() -> anyhow::Result<()> {
         Some(r) => {
             match r {
                 Ok(tree) => {
-                    //execute(&tree).unwrap()
-                    // dbg!(&tree);
-                    // dbg!(analyzer::Analyzer::typecheck_program(&tree))?;
-                    let type_cache = analyzer::Analyzer::typecheck_program(&tree, &buffer)?;
-                    println!("Program parsed with no errors");
-                    // example to just dump the contents of the type cache, you can delete this if you need.
-                    for (k, v) in type_cache.iter() {
-                        println!("{:?} is of type {:?}", **k, v);
+                    let typecheck_result = analyzer::Analyzer::typecheck_program(&tree, &buffer);
+                    
+                    if let Err(errors) = &typecheck_result {
+                        println!("{} errors", errors.len());
+                        for error in errors.iter() {
+                            println!("Error: {}", error);
+                        }
+                        return Ok(());
                     }
+                    
+                    let type_cache = typecheck_result.unwrap();
+
                     let mut c = Compiler::new(type_cache);
                     let program = c.compile_program(&tree).unwrap();
 

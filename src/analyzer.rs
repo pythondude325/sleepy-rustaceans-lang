@@ -60,6 +60,7 @@ pub struct Analyzer<'ast> {
     var_types: HashMap<Spur, Type>,
     type_cache: HashMap<HashRef<'ast, LocExpression>, Type>,
     program_data: String,
+    errors: Vec<SemanticError>,
 }
 
 struct TextPosition {
@@ -77,6 +78,7 @@ impl<'ast> Analyzer<'ast> {
             var_types: HashMap::new(),
             type_cache: HashMap::new(),
             program_data: program.clone(),
+            errors: Vec::new(),
         }
     }
 
@@ -326,7 +328,11 @@ impl<'ast> Analyzer<'ast> {
                 _ => {}
             }
 
-            self.typecheck_statement(stmt)?;
+            let result = self.typecheck_statement(stmt);
+
+            if let Err(err) = result {
+                self.errors.push(err);
+            }
         }
         Ok(())
     }
@@ -334,9 +340,14 @@ impl<'ast> Analyzer<'ast> {
     pub fn typecheck_program(
         statement_list: &'ast Locatable<StmtList>,
         buffer: &String,
-    ) -> Result<HashMap<HashRef<'ast, LocExpression>, Type>, SemanticError> {
+    ) -> Result<HashMap<HashRef<'ast, LocExpression>, Type>, Vec<SemanticError>> {
         let mut analyzer = Analyzer::new(buffer);
-        analyzer.typecheck_block(&statement_list)?;
-        Ok(analyzer.type_cache)
+        analyzer.typecheck_block(&statement_list);
+
+        if analyzer.errors.is_empty() {
+            Ok(analyzer.type_cache)
+        } else {
+            Err(analyzer.errors)
+        }
     }
 }
