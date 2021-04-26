@@ -101,7 +101,7 @@ pub enum Stmt {
         value: LocExpression,
     },
     PrintString {
-        value: LocExpression,
+        value: String
     },
     PrintNewline,
     If {
