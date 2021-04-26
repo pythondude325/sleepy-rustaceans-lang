@@ -1,8 +1,8 @@
-use std::collections::HashMap;
 use reduce::Reduce;
+use std::collections::HashMap;
 
-use crate::types::*;
 use crate::analyzer::HashRef;
+use crate::types::*;
 
 pub struct Compiler<'ast> {
     //main_body: String,
@@ -18,11 +18,14 @@ impl<'ast> Compiler<'ast> {
             vars: HashMap::new(),
             curr_int: 0,
             curr_frac: 0,
-            type_cache
+            type_cache,
         }
     }
 
-    pub fn compile_program(&mut self, program: &Locatable<StmtList>) -> Result<String, &'static str> {
+    pub fn compile_program(
+        &mut self,
+        program: &Locatable<StmtList>,
+    ) -> Result<String, &'static str> {
         Ok(template_program(&self.compile_stmt_list(&program.data)?))
     }
 
@@ -38,27 +41,51 @@ impl<'ast> Compiler<'ast> {
 
     fn compile_stmt(&mut self, stmt: &LocStmt) -> Result<String, &'static str> {
         Ok(match stmt.data {
-            Stmt::Definition { ref variable_type, ref identifier, ref value } => self.build_definition(variable_type, &identifier.data, value)?,
-            Stmt::Assignment { ref identifier, ref value } => self.build_assignment(&identifier.data, value)?,
+            Stmt::Definition {
+                ref variable_type,
+                ref identifier,
+                ref value,
+            } => self.build_definition(variable_type, &identifier.data, value)?,
+            Stmt::Assignment {
+                ref identifier,
+                ref value,
+            } => self.build_assignment(&identifier.data, value)?,
             Stmt::PrintString { ref value } => self.build_print_string(value)?,
             Stmt::PrintInteger { ref value } => self.build_print_integer(value)?,
             Stmt::PrintFraction { ref value } => self.build_print_fraction(value)?,
             Stmt::PrintNewline { .. } => self.build_print_newline()?,
-            Stmt::If { ref condition, ref block } => self.build_if(condition, block)?,
-            Stmt::While { ref condition, ref block } => self.build_while(condition, block)?,
+            Stmt::If {
+                ref condition,
+                ref block,
+            } => self.build_if(condition, block)?,
+            Stmt::While {
+                ref condition,
+                ref block,
+            } => self.build_while(condition, block)?,
         })
     }
 
     fn check_type(&self, expr: &LocExpression) -> Type {
         match expr.data {
-            Expression::Int { .. } | Expression::Add { .. } | Expression::Sub { .. } | Expression::Mul { .. } => Type::Integer,
-            Expression::Fraction { .. } | Expression::FAdd { .. } | Expression::FSub { .. } | Expression::FMul { .. } => Type::Fraction,
+            Expression::Int { .. }
+            | Expression::Add { .. }
+            | Expression::Sub { .. }
+            | Expression::Mul { .. } => Type::Integer,
+            Expression::Fraction { .. }
+            | Expression::FAdd { .. }
+            | Expression::FSub { .. }
+            | Expression::FMul { .. } => Type::Fraction,
             Expression::Variable { ref ident } => self.vars.get(ident).unwrap().1,
             _ => unimplemented!(),
         }
     }
 
-    fn build_definition(&mut self, variable_type: &Type, identifier: &String, value: &Option<LocExpression>) -> Result<String, &'static str> {
+    fn build_definition(
+        &mut self,
+        variable_type: &Type,
+        identifier: &String,
+        value: &Option<LocExpression>,
+    ) -> Result<String, &'static str> {
         Ok(match variable_type {
             Type::Integer => {
                 let expression_text = match value {
@@ -67,7 +94,8 @@ impl<'ast> Compiler<'ast> {
                 };
 
                 let name = format!("__int{}", self.curr_int);
-                self.vars.insert(identifier.clone(), (name.clone(), Type::Integer));
+                self.vars
+                    .insert(identifier.clone(), (name.clone(), Type::Integer));
 
                 self.curr_int += 1;
                 format!("int {} = {};\n", name, expression_text)
@@ -79,7 +107,8 @@ impl<'ast> Compiler<'ast> {
                 };
 
                 let name = format!("__frac{}", self.curr_frac);
-                self.vars.insert(identifier.clone(), (name.clone(), Type::Fraction));
+                self.vars
+                    .insert(identifier.clone(), (name.clone(), Type::Fraction));
 
                 self.curr_frac += 1;
                 format!("frac {} = {};\n", name, expression_text)
@@ -87,9 +116,17 @@ impl<'ast> Compiler<'ast> {
         })
     }
 
-    fn build_assignment(&mut self, identifier: &String, value: &LocExpression) -> Result<String, &'static str> {
+    fn build_assignment(
+        &mut self,
+        identifier: &String,
+        value: &LocExpression,
+    ) -> Result<String, &'static str> {
         let expression_text = self.build_expression(value, None)?;
-        Ok(format!("{} = {};\n", self.vars.get(identifier).unwrap().0, expression_text))
+        Ok(format!(
+            "{} = {};\n",
+            self.vars.get(identifier).unwrap().0,
+            expression_text
+        ))
     }
 
     fn build_print_string(&mut self, s: &String) -> Result<String, &'static str> {
@@ -97,79 +134,156 @@ impl<'ast> Compiler<'ast> {
     }
 
     fn build_print_integer(&mut self, val: &LocExpression) -> Result<String, &'static str> {
-        Ok(format!("printf(\"%d\", {});\n", self.build_expression(val, Some(Type::Integer))?))
+        Ok(format!(
+            "printf(\"%d\", {});\n",
+            self.build_expression(val, Some(Type::Integer))?
+        ))
     }
 
     fn build_print_fraction(&mut self, val: &LocExpression) -> Result<String, &'static str> {
-        Ok(format!("print_fraction({});\n", self.build_expression(val, Some(Type::Fraction))?))
+        Ok(format!(
+            "print_fraction({});\n",
+            self.build_expression(val, Some(Type::Fraction))?
+        ))
     }
 
     fn build_print_newline(&mut self) -> Result<String, &'static str> {
         Ok(String::from("printf(\"\\n\");\n"))
     }
 
-    fn build_expression(&mut self, val: &LocExpression, target_type: Option<Type>) -> Result<String, &'static str> {
+    fn build_expression(
+        &mut self,
+        val: &LocExpression,
+        target_type: Option<Type>,
+    ) -> Result<String, &'static str> {
         Ok(match val.data {
             Expression::Int { ref val } => match target_type {
-                Some(t) => match t { Type::Integer => format!("{}", *val), Type::Fraction => format!("new_frac({},1)", *val) },
-                None => format!("{}", *val)
+                Some(t) => match t {
+                    Type::Integer => format!("{}", *val),
+                    Type::Fraction => format!("new_frac({},1)", *val),
+                },
+                None => format!("{}", *val),
             },
             Expression::Add { ref lhs, ref rhs } => match target_type {
                 Some(t) => match t {
-                    Type::Integer => format!("{}+{}", self.build_expression(lhs, None)?, self.build_expression(rhs, None)?),
-                    Type::Fraction => format!("frac_new({}+{}, 1)", self.build_expression(lhs, None)?, self.build_expression(rhs, None)?)
+                    Type::Integer => format!(
+                        "{}+{}",
+                        self.build_expression(lhs, None)?,
+                        self.build_expression(rhs, None)?
+                    ),
+                    Type::Fraction => format!(
+                        "frac_new({}+{}, 1)",
+                        self.build_expression(lhs, None)?,
+                        self.build_expression(rhs, None)?
+                    ),
                 },
-                None => format!("{}+{}", self.build_expression(lhs, None)?, self.build_expression(rhs, None)?)
+                None => format!(
+                    "{}+{}",
+                    self.build_expression(lhs, None)?,
+                    self.build_expression(rhs, None)?
+                ),
             },
             Expression::Sub { ref lhs, ref rhs } => match target_type {
                 Some(t) => match t {
-                    Type::Integer => format!("{}-{}", self.build_expression(lhs, None)?, self.build_expression(rhs, None)?),
-                    Type::Fraction => format!("frac_new({}-{}, 1)", self.build_expression(lhs, None)?, self.build_expression(rhs, None)?)
+                    Type::Integer => format!(
+                        "{}-{}",
+                        self.build_expression(lhs, None)?,
+                        self.build_expression(rhs, None)?
+                    ),
+                    Type::Fraction => format!(
+                        "frac_new({}-{}, 1)",
+                        self.build_expression(lhs, None)?,
+                        self.build_expression(rhs, None)?
+                    ),
                 },
-                None => format!("{}-{}", self.build_expression(lhs, None)?, self.build_expression(rhs, None)?)
+                None => format!(
+                    "{}-{}",
+                    self.build_expression(lhs, None)?,
+                    self.build_expression(rhs, None)?
+                ),
             },
             Expression::Mul { ref lhs, ref rhs } => match target_type {
                 Some(t) => match t {
-                    Type::Integer => format!("{}*{}", self.build_expression(lhs, None)?, self.build_expression(rhs, None)?),
-                    Type::Fraction => format!("frac_new({}*{}, 1)", self.build_expression(lhs, None)?, self.build_expression(rhs, None)?)
+                    Type::Integer => format!(
+                        "{}*{}",
+                        self.build_expression(lhs, None)?,
+                        self.build_expression(rhs, None)?
+                    ),
+                    Type::Fraction => format!(
+                        "frac_new({}*{}, 1)",
+                        self.build_expression(lhs, None)?,
+                        self.build_expression(rhs, None)?
+                    ),
                 },
-                None => format!("{}*{}", self.build_expression(lhs, None)?, self.build_expression(rhs, None)?)
+                None => format!(
+                    "{}*{}",
+                    self.build_expression(lhs, None)?,
+                    self.build_expression(rhs, None)?
+                ),
             },
 
             Expression::Fraction { ref num, ref den } => format!("new_frac({}, {})", num, den),
-            Expression::FAdd { ref lhs, ref rhs } => format!("frac_add({}, {})", self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?),
-            Expression::FSub { ref lhs, ref rhs } => format!("frac_sub({}, {})", self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?),
-            Expression::FMul { ref lhs, ref rhs } => format!("frac_mul({}, {})", self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?),
+            Expression::FAdd { ref lhs, ref rhs } => format!(
+                "frac_add({}, {})",
+                self.build_expression(lhs, Some(Type::Fraction))?,
+                self.build_expression(rhs, Some(Type::Fraction))?
+            ),
+            Expression::FSub { ref lhs, ref rhs } => format!(
+                "frac_sub({}, {})",
+                self.build_expression(lhs, Some(Type::Fraction))?,
+                self.build_expression(rhs, Some(Type::Fraction))?
+            ),
+            Expression::FMul { ref lhs, ref rhs } => format!(
+                "frac_mul({}, {})",
+                self.build_expression(lhs, Some(Type::Fraction))?,
+                self.build_expression(rhs, Some(Type::Fraction))?
+            ),
 
             Expression::Max { ref args } => {
                 let frac = self.type_cache.get(&HashRef(val)).unwrap() == &Type::Fraction;
                 args.data
                     .iter()
-                    .map(|e| self.build_expression(e, Some(if frac { Type::Fraction } else { Type::Integer })).unwrap())
+                    .map(|e| {
+                        self.build_expression(
+                            e,
+                            Some(if frac { Type::Fraction } else { Type::Integer }),
+                        )
+                        .unwrap()
+                    })
                     .reduce(|acc, x| format!("max{}({},{})", if frac { "_f" } else { "" }, x, acc))
                     .unwrap()
-            },
-            Expression::Variable { ref ident } => {
-                match target_type {
-                    Some(t) => match (self.vars.get(ident).unwrap().1, t) {
-                        (Type::Integer, Type::Integer) | (Type::Fraction, Type::Fraction) => self.vars.get(ident).unwrap().0.clone(),
-                        (Type::Integer, Type::Fraction) => format!("new_frac({}, 1)", self.vars.get(ident).unwrap().0.clone()),
-                        _ => unreachable!(),
+            }
+            Expression::Variable { ref ident } => match target_type {
+                Some(t) => match (self.vars.get(ident).unwrap().1, t) {
+                    (Type::Integer, Type::Integer) | (Type::Fraction, Type::Fraction) => {
+                        self.vars.get(ident).unwrap().0.clone()
                     }
-                    None => self.vars.get(ident).unwrap().0.clone()
-                }
+                    (Type::Integer, Type::Fraction) => {
+                        format!("new_frac({}, 1)", self.vars.get(ident).unwrap().0.clone())
+                    }
+                    _ => unreachable!(),
+                },
+                None => self.vars.get(ident).unwrap().0.clone(),
             },
         })
     }
 
-    fn build_if(&mut self, condition: &Locatable<Cond>, block: &Locatable<StmtList>) -> Result<String, &'static str> {
+    fn build_if(
+        &mut self,
+        condition: &Locatable<Cond>,
+        block: &Locatable<StmtList>,
+    ) -> Result<String, &'static str> {
         let body_text = self.compile_stmt_list(&block.data)?;
         let cond_text = self.build_condition(condition)?;
 
         Ok(format!("if ({}) {{\n{}}}\n", cond_text, body_text))
     }
 
-    fn build_while(&mut self, condition: &Locatable<Cond>, block: &Locatable<StmtList>) -> Result<String, &'static str> {
+    fn build_while(
+        &mut self,
+        condition: &Locatable<Cond>,
+        block: &Locatable<StmtList>,
+    ) -> Result<String, &'static str> {
         let body_text = self.compile_stmt_list(&block.data)?;
         let cond_text = self.build_condition(condition)?;
 
@@ -179,42 +293,99 @@ impl<'ast> Compiler<'ast> {
     fn build_condition(&mut self, condition: &Locatable<Cond>) -> Result<String, &'static str> {
         Ok(match condition.data {
             Cond::Greater { ref lhs, ref rhs } => {
-                let (lhs_expression_text, rhs_expression_text, ty) = match (self.check_type(rhs), self.check_type(lhs)) {
-                    (Type::Integer, Type::Integer) => (self.build_expression(lhs, Some(Type::Integer))?, self.build_expression(rhs, Some(Type::Integer))?, Type::Integer),
-                    (Type::Fraction, Type::Integer) => (self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?, Type::Fraction),
-                    (Type::Integer, Type::Fraction) => (self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?, Type::Fraction),
-                    (Type::Fraction, Type::Fraction) => (self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?, Type::Fraction),
-                };
+                let (lhs_expression_text, rhs_expression_text, ty) =
+                    match (self.check_type(rhs), self.check_type(lhs)) {
+                        (Type::Integer, Type::Integer) => (
+                            self.build_expression(lhs, Some(Type::Integer))?,
+                            self.build_expression(rhs, Some(Type::Integer))?,
+                            Type::Integer,
+                        ),
+                        (Type::Fraction, Type::Integer) => (
+                            self.build_expression(lhs, Some(Type::Fraction))?,
+                            self.build_expression(rhs, Some(Type::Fraction))?,
+                            Type::Fraction,
+                        ),
+                        (Type::Integer, Type::Fraction) => (
+                            self.build_expression(lhs, Some(Type::Fraction))?,
+                            self.build_expression(rhs, Some(Type::Fraction))?,
+                            Type::Fraction,
+                        ),
+                        (Type::Fraction, Type::Fraction) => (
+                            self.build_expression(lhs, Some(Type::Fraction))?,
+                            self.build_expression(rhs, Some(Type::Fraction))?,
+                            Type::Fraction,
+                        ),
+                    };
 
                 match ty {
                     Type::Integer => format!("{} > {}", lhs_expression_text, rhs_expression_text),
-                    Type::Fraction => format!("frac_gt({},{})", lhs_expression_text, rhs_expression_text),
+                    Type::Fraction => {
+                        format!("frac_gt({},{})", lhs_expression_text, rhs_expression_text)
+                    }
                 }
             }
             Cond::Equal { ref lhs, ref rhs } => {
-                let (lhs_expression_text, rhs_expression_text, ty) = match (self.check_type(rhs), self.check_type(lhs)) {
-                    (Type::Integer, Type::Integer) => (self.build_expression(lhs, Some(Type::Integer))?, self.build_expression(rhs, Some(Type::Integer))?, Type::Integer),
-                    (Type::Fraction, Type::Integer) => (self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?, Type::Fraction),
-                    (Type::Integer, Type::Fraction) => (self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?, Type::Fraction),
-                    (Type::Fraction, Type::Fraction) => (self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?, Type::Fraction),
-                };
+                let (lhs_expression_text, rhs_expression_text, ty) =
+                    match (self.check_type(rhs), self.check_type(lhs)) {
+                        (Type::Integer, Type::Integer) => (
+                            self.build_expression(lhs, Some(Type::Integer))?,
+                            self.build_expression(rhs, Some(Type::Integer))?,
+                            Type::Integer,
+                        ),
+                        (Type::Fraction, Type::Integer) => (
+                            self.build_expression(lhs, Some(Type::Fraction))?,
+                            self.build_expression(rhs, Some(Type::Fraction))?,
+                            Type::Fraction,
+                        ),
+                        (Type::Integer, Type::Fraction) => (
+                            self.build_expression(lhs, Some(Type::Fraction))?,
+                            self.build_expression(rhs, Some(Type::Fraction))?,
+                            Type::Fraction,
+                        ),
+                        (Type::Fraction, Type::Fraction) => (
+                            self.build_expression(lhs, Some(Type::Fraction))?,
+                            self.build_expression(rhs, Some(Type::Fraction))?,
+                            Type::Fraction,
+                        ),
+                    };
 
                 match ty {
                     Type::Integer => format!("{} == {}", lhs_expression_text, rhs_expression_text),
-                    Type::Fraction => format!("frac_eq({},{})", lhs_expression_text, rhs_expression_text),
+                    Type::Fraction => {
+                        format!("frac_eq({},{})", lhs_expression_text, rhs_expression_text)
+                    }
                 }
             }
             Cond::Less { ref lhs, ref rhs } => {
-                let (lhs_expression_text, rhs_expression_text, ty) = match (self.check_type(rhs), self.check_type(lhs)) {
-                    (Type::Integer, Type::Integer) => (self.build_expression(lhs, Some(Type::Integer))?, self.build_expression(rhs, Some(Type::Integer))?, Type::Integer),
-                    (Type::Fraction, Type::Integer) => (self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?, Type::Fraction),
-                    (Type::Integer, Type::Fraction) => (self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?, Type::Fraction),
-                    (Type::Fraction, Type::Fraction) => (self.build_expression(lhs, Some(Type::Fraction))?, self.build_expression(rhs, Some(Type::Fraction))?, Type::Fraction),
-                };
+                let (lhs_expression_text, rhs_expression_text, ty) =
+                    match (self.check_type(rhs), self.check_type(lhs)) {
+                        (Type::Integer, Type::Integer) => (
+                            self.build_expression(lhs, Some(Type::Integer))?,
+                            self.build_expression(rhs, Some(Type::Integer))?,
+                            Type::Integer,
+                        ),
+                        (Type::Fraction, Type::Integer) => (
+                            self.build_expression(lhs, Some(Type::Fraction))?,
+                            self.build_expression(rhs, Some(Type::Fraction))?,
+                            Type::Fraction,
+                        ),
+                        (Type::Integer, Type::Fraction) => (
+                            self.build_expression(lhs, Some(Type::Fraction))?,
+                            self.build_expression(rhs, Some(Type::Fraction))?,
+                            Type::Fraction,
+                        ),
+                        (Type::Fraction, Type::Fraction) => (
+                            self.build_expression(lhs, Some(Type::Fraction))?,
+                            self.build_expression(rhs, Some(Type::Fraction))?,
+                            Type::Fraction,
+                        ),
+                    };
 
                 match ty {
                     Type::Integer => format!("{} < {}", lhs_expression_text, rhs_expression_text),
-                    Type::Fraction => format!("frac_lt({},{})", lhs_expression_text, rhs_expression_text),
+                    Type::Fraction => {
+                        format!("frac_lt({},{})", lhs_expression_text, rhs_expression_text)
+                    }
                 }
             }
         })
@@ -222,7 +393,8 @@ impl<'ast> Compiler<'ast> {
 }
 
 fn template_program(program: &String) -> String {
-    let mut prog = String::from(r#"#include <stdio.h>
+    let mut prog = String::from(
+        r#"#include <stdio.h>
 #include <stdlib.h>
 
 typedef struct {
@@ -296,9 +468,10 @@ int max(int a, int b) {
 }
 
 int main() {
-"#);
-  prog += program;
-  prog += "\treturn 0;\n}";
+"#,
+    );
+    prog += program;
+    prog += "\treturn 0;\n}";
 
-  prog
+    prog
 }
